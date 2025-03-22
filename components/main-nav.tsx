@@ -1,0 +1,39 @@
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Heart, LogIn } from "lucide-react"
+
+export function MainNav() {
+  return (
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex h-16 items-center">
+        <Link href="/" className="flex items-center space-x-2">
+          <Heart className="h-6 w-6 text-primary" />
+          <span className="font-bold">BlockCharity</span>
+        </Link>
+        <nav className="ml-auto flex gap-4 sm:gap-6">
+          <Link href="/about" className="text-sm font-medium hover:underline underline-offset-4">
+            About Us
+          </Link>
+          <Link href="/donate" className="text-sm font-medium hover:underline underline-offset-4">
+            Donate
+          </Link>
+          <Link href="/leaderboard" className="text-sm font-medium hover:underline underline-offset-4">
+            Leaderboard
+          </Link>
+        </nav>
+        <div className="ml-4 flex items-center gap-2">
+          <Link href="/login">
+            <Button variant="outline" size="sm" className="hidden sm:flex">
+              <LogIn className="mr-2 h-4 w-4" />
+              Login
+            </Button>
+          </Link>
+          <Link href="/register">
+            <Button size="sm">Sign Up</Button>
+          </Link>
+        </div>
+      </div>
+    </header>
+  )
+}
+
