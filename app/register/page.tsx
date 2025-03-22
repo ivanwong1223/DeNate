@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -5,8 +7,15 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
+import { useRouter } from "next/navigation"
 
 export default function RegisterPage() {
+  const router = useRouter()
+
+  const handleOrganizationRegister = () => {
+    router.push("/verification-form")
+  }
+
   return (
     <div className="flex flex-col min-h-screen items-center justify-center py-12">
       <div className="container px-4 md:px-6">
@@ -132,7 +141,9 @@ export default function RegisterPage() {
                       of your organization. This includes providing documentation and proof of charitable status.
                     </p>
                   </div>
-                  <Button className="w-full">Register Organization</Button>
+                  <Button className="w-full" onClick={handleOrganizationRegister}>
+                    Register Organization
+                  </Button>
                 </CardContent>
                 <CardFooter className="flex flex-col items-center gap-2">
                   <div className="text-sm text-muted-foreground">
