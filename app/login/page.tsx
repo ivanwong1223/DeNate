@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import WalletConnect from "@/components/custom/connect-wallet"
 
 export default function LoginPage() {
   return (
@@ -54,9 +55,7 @@ export default function LoginPage() {
                     </Link>
                   </div>
                   <div className="text-sm text-muted-foreground">Or connect with your wallet</div>
-                  <Button variant="outline" className="w-full">
-                    Connect Wallet
-                  </Button>
+                  <WalletConnect />
                 </CardFooter>
               </Card>
             </TabsContent>
@@ -93,9 +92,7 @@ export default function LoginPage() {
                     </Link>
                   </div>
                   <div className="text-sm text-muted-foreground">Or connect with your wallet</div>
-                  <Button variant="outline" className="w-full">
-                    Connect Wallet
-                  </Button>
+                  <WalletConnect />
                 </CardFooter>
               </Card>
             </TabsContent>

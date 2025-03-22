@@ -1,8 +1,15 @@
+"use client";
+
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Heart, LogIn } from "lucide-react"
+import { useAccount } from "wagmi";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 
 export function MainNav() {
+  // check if user is connected to wallet
+  const { isConnected } = useAccount();
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
@@ -21,16 +28,24 @@ export function MainNav() {
             Leaderboard
           </Link>
         </nav>
+
+        {/* Wallet Connection */}
         <div className="ml-4 flex items-center gap-2">
-          <Link href="/login">
-            <Button variant="outline" size="sm" className="hidden sm:flex">
-              <LogIn className="mr-2 h-4 w-4" />
-              Login
-            </Button>
-          </Link>
-          <Link href="/register">
-            <Button size="sm">Sign Up</Button>
-          </Link>
+          {isConnected ? (
+            <ConnectButton showBalance={false} accountStatus="address" chainStatus="icon" />
+          ) : (
+            <>
+              <Link href="/login">
+                <Button variant="outline" size="sm" className="hidden sm:flex">
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Login
+                </Button>
+              </Link>
+              <Link href="/register">
+                <Button size="sm">Sign Up</Button>
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </header>
