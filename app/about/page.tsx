@@ -14,7 +14,7 @@ export default function AboutPage() {
               <div className="space-y-2">
                 <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">Our Mission</h1>
                 <p className="max-w-[600px] text-muted-foreground md:text-xl">
-                  BlockCharity is dedicated to improving trust, transparency, and efficiency in charitable giving
+                  DeNate is dedicated to improving trust, transparency, and efficiency in charitable giving
                   through secure blockchain technology and smart contracts.
                 </p>
               </div>
@@ -24,7 +24,7 @@ export default function AboutPage() {
                 src="/about-us.jpg"
                 width={400}
                 height={400}
-                alt="BlockCharity Mission"
+                alt="DeNate Mission"
                 className="rounded-lg object-cover"
               />
             </div>
@@ -38,7 +38,7 @@ export default function AboutPage() {
             <div className="space-y-2">
               <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">Our Story</h2>
               <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                BlockCharity was founded in 2022 by a group of blockchain enthusiasts and philanthropy advocates who
+                DeNate was founded in 2022 by a group of blockchain enthusiasts and philanthropy advocates who
                 recognized the potential of blockchain technology to revolutionize charitable giving.
               </p>
             </div>
@@ -56,7 +56,7 @@ export default function AboutPage() {
               impact.
             </p>
             <p className="text-muted-foreground">
-              Today, BlockCharity connects donors with verified organizations around the world, facilitating transparent
+              Today, DeNate connects donors with verified organizations around the world, facilitating transparent
               giving and helping to address some of the world's most pressing challenges.
             </p>
           </div>
@@ -156,16 +156,16 @@ export default function AboutPage() {
             <div className="space-y-2">
               <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">Our Team</h2>
               <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                Meet the passionate individuals behind BlockCharity
+                Meet the passionate individuals behind DeNate
               </p>
             </div>
           </div>
           <div className="grid gap-6 py-12 md:grid-cols-2 lg:grid-cols-3">
             {[
-              { name: "AidenTheinTV", role: "Co-Founder & CEO", image: "/my-notion-face-transparent.png" },
-              { name: "John Paulose", role: "Co-Founder & CTO", image: "/my-notion-face-transparent.png" },
+              { name: "AidenTheinTV", role: "Co-Founder & CEO", image: "/aiden-notion.png" },
+              { name: "John Paulose", role: "Co-Founder & CTO", image: "/john-notion.png" },
               { name: "Ivan Wong", role: "Head of Partnerships", image: "/my-notion-face-transparent.png" },
-              { name: "Roy Teh", role: "Blockchain Lead", image: "/my-notion-face-transparent.png" },
+              { name: "Roy Teh", role: "Blockchain Lead", image: "/roy-notion.png" },
             ].map((member, index) => (
               <div key={index} className="flex flex-col items-center space-y-2">
                 <div className="overflow-hidden rounded-full">

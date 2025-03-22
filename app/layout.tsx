@@ -8,7 +8,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata = {
-  title: "BlockCharity - Transparent Blockchain Charity Platform",
+  title: "DeNate - Transparent Blockchain Charity Platform",
   description:
     "A blockchain-powered charity platform for transparent, secure donation tracking using blockchain technology and smart contracts.",
     generator: 'v0.dev'

@@ -1,4 +1,6 @@
-BlockCharity - Transparent Charity Donation Tracking Platform
+# DeNate - Transparent Charity Donation Tracking Platform
+
+DeNate is a blockchain-powered charity platform designed to improve trust, transparency, and efficiency in charitable giving through secure blockchain technology and smart contracts.
 
 - **Frontend**: Next.js, React 18, TypeScript
 - **UI Components**: Shadcn/UI component library, Tailwind CSS
@@ -16,8 +18,7 @@ BlockCharity - Transparent Charity Donation Tracking Platform
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/yourusername/blockcharity.git
-   cd blockcharity
+   git clone https://github.com/ivanwong1223/DeNate.git
    ```
 
 2. Install dependencies:

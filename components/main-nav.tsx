@@ -8,7 +8,7 @@ export function MainNav() {
       <div className="container flex h-16 items-center">
         <Link href="/" className="flex items-center space-x-2">
           <Heart className="h-6 w-6 text-primary" />
-          <span className="font-bold">BlockCharity</span>
+          <span className="font-bold">DeNate</span>
         </Link>
         <nav className="ml-auto flex gap-4 sm:gap-6">
           <Link href="/about" className="text-sm font-medium hover:underline underline-offset-4">

@@ -8,7 +8,7 @@ export function SiteFooter() {
         <div className="flex items-center gap-2">
           <Heart className="h-5 w-5 text-primary" />
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} BlockCharity. All rights reserved.
+            © {new Date().getFullYear()} DeNate. All rights reserved.
           </p>
         </div>
         <nav className="flex gap-4 sm:gap-6">
