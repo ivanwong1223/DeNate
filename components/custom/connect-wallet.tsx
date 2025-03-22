@@ -16,6 +16,7 @@ export default function WalletConnect({ onConnected }: { onConnected?: () => voi
     if (isConnected && !hasConnected.current) {
       hasConnected.current = true;
       if (onConnected) onConnected();
+      // for now just route to index, once imported the db will be route to their own user role
       setTimeout(() => router.push("/"), 2000);
     }
   }, [isConnected, onConnected, router]);

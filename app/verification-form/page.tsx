@@ -25,14 +25,14 @@ export default function KYBPage() {
             <div className="container px-4 md:px-6">
                 <div className="flex flex-col items-center space-y-4 text-center">
                     <div className="space-y-2">
-                        <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl">Business Verification</h1>
-                        <p className="text-muted-foreground">Provide details for Know Your Business (KYB) verification</p>
+                        <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl">Organization Verification</h1>
+                        <p className="text-muted-foreground">Provide details for organization verification</p>
                     </div>
                 </div>
                 <form onSubmit={handleSubmit} className="mx-auto grid w-full max-w-md gap-6 py-8">
                     <Card>
                         <CardHeader>
-                            <CardTitle>KYB Verification</CardTitle>
+                            <CardTitle>Organization Verification</CardTitle>
                             <CardDescription>Ensure your organization is verified to start receiving donations</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -53,12 +53,12 @@ export default function KYBPage() {
                                 <Input id="contact-email" type="email" placeholder="contact@example.com" required />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="business-address">Business Address</Label>
+                                <Label htmlFor="business-address">Organization Address</Label>
                                 <Textarea id="business-address" placeholder="123 Business St, City, Country" required />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="business-type">Type of Business</Label>
-                                <Input id="business-type" placeholder="Non-profit / Corporation / Partnership" required />
+                                <Label htmlFor="business-type">Type of Organization</Label>
+                                <Input id="business-type" placeholder="Public Charities / Private Foundations / Partnership" required />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="docs">Upload Documents</Label>
