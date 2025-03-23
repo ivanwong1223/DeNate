@@ -4,68 +4,26 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { PlusCircle, BarChart3, Clock, Users, FileText, Bell, Settings } from "lucide-react"
+import { getOrganizationDashboardData } from "@/lib/mockData"
 
-// Mock data for organization dashboard
-const organizationData = {
-  name: "Global Water Foundation",
-  totalRaised: "320 ETH",
-  campaigns: 4,
-  donors: 450,
-  badges: ["Verified", "Top Performer"],
-  activeCampaigns: [
-    {
-      id: 1,
-      title: "Clean Water Initiative",
-      raised: 85,
-      goal: 100,
-      donors: 128,
-      daysLeft: 15,
-      milestones: [
-        { title: "Initial Assessment", amount: 25, status: "completed" },
-        { title: "Equipment Purchase", amount: 50, status: "completed" },
-        { title: "Construction Phase", amount: 75, status: "completed" },
-        { title: "Project Completion", amount: 100, status: "pending" },
-      ],
-    },
-    {
-      id: 2,
-      title: "Water Purification Systems",
-      raised: 45,
-      goal: 150,
-      donors: 72,
-      daysLeft: 30,
-      milestones: [
-        { title: "Research & Planning", amount: 30, status: "completed" },
-        { title: "Equipment Acquisition", amount: 60, status: "completed" },
-        { title: "Installation Phase", amount: 90, status: "pending" },
-        { title: "Training & Handover", amount: 150, status: "pending" },
-      ],
-    },
-    {
-      id: 3,
-      title: "Community Wells Project",
-      raised: 120,
-      goal: 120,
-      donors: 210,
-      daysLeft: 0,
-      milestones: [
-        { title: "Site Selection", amount: 30, status: "completed" },
-        { title: "Drilling Operations", amount: 60, status: "completed" },
-        { title: "Well Construction", amount: 90, status: "completed" },
-        { title: "Community Training", amount: 120, status: "completed" },
-      ],
-    },
-  ],
-  recentDonations: [
-    { donor: "Anonymous", campaign: "Clean Water Initiative", amount: "5 ETH", date: "2023-06-01" },
-    { donor: "Sarah Johnson", campaign: "Water Purification Systems", amount: "10 ETH", date: "2023-05-30" },
-    { donor: "Michael Chen", campaign: "Clean Water Initiative", amount: "2.5 ETH", date: "2023-05-29" },
-    { donor: "Emma Williams", campaign: "Community Wells Project", amount: "7 ETH", date: "2023-05-28" },
-    { donor: "David Rodriguez", campaign: "Water Purification Systems", amount: "3 ETH", date: "2023-05-27" },
-  ],
-}
+// For demo purposes, using a static organization ID - in a real app, this would come from authentication
+const DEMO_ORGANIZATION_ID = "o1"  // Which means need to pass the organization ID that has logged in to here
 
 export default function OrganizationDashboardPage() {
+  // Get organization dashboard data from mockData
+  const orgData = getOrganizationDashboardData(DEMO_ORGANIZATION_ID)
+
+  if (!orgData) {
+    return (
+      <div className="flex flex-col min-h-screen items-center justify-center">
+        <h1 className="text-2xl font-bold">Organization not found</h1>
+        <p className="text-muted-foreground">The organization dashboard you are looking for does not exist.</p>
+      </div>
+    )
+  }
+
+  const { organization, activeCampaigns, recentDonations } = orgData
+
   return (
     <div className="flex flex-col min-h-screen">
       <section className="w-full py-12 md:py-24 lg:py-32 bg-muted/50">
@@ -73,8 +31,8 @@ export default function OrganizationDashboardPage() {
           <div className="grid gap-6 lg:grid-cols-[1fr_300px] lg:gap-12">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">{organizationData.name}</h1>
-                <Badge className="ml-2">Verified</Badge>
+                <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">{organization.name}</h1>
+                {organization.verified && <Badge className="ml-2">Verified</Badge>}
               </div>
               <p className="text-muted-foreground">
                 Manage your campaigns, track donations, and view your impact metrics.
@@ -106,8 +64,8 @@ export default function OrganizationDashboardPage() {
                 <CardTitle className="text-sm font-medium">Total Raised</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{organizationData.totalRaised}</div>
-                <p className="text-xs text-muted-foreground">Across {organizationData.campaigns} campaigns</p>
+                <div className="text-2xl font-bold">{organization.totalRaised} ETH</div>
+                <p className="text-xs text-muted-foreground">Across {organization.campaigns} campaigns</p>
               </CardContent>
             </Card>
             <Card>
@@ -115,7 +73,7 @@ export default function OrganizationDashboardPage() {
                 <CardTitle className="text-sm font-medium">Total Donors</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{organizationData.donors}</div>
+                <div className="text-2xl font-bold">{organization.donors}</div>
                 <p className="text-xs text-muted-foreground">Supporting your mission</p>
               </CardContent>
             </Card>
@@ -124,7 +82,7 @@ export default function OrganizationDashboardPage() {
                 <CardTitle className="text-sm font-medium">Active Campaigns</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{organizationData.activeCampaigns.length}</div>
+                <div className="text-2xl font-bold">{activeCampaigns.length}</div>
                 <p className="text-xs text-muted-foreground">Currently running</p>
               </CardContent>
             </Card>
@@ -133,9 +91,9 @@ export default function OrganizationDashboardPage() {
                 <CardTitle className="text-sm font-medium">Organization Badges</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{organizationData.badges.length}</div>
+                <div className="text-2xl font-bold">{organization.badges.length}</div>
                 <div className="flex flex-wrap gap-1 mt-1">
-                  {organizationData.badges.map((badge, index) => (
+                  {organization.badges.map((badge, index) => (
                     <Badge key={index} variant="outline" className="text-xs">
                       {badge}
                     </Badge>
@@ -153,7 +111,7 @@ export default function OrganizationDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  {organizationData.activeCampaigns.map((campaign) => (
+                  {activeCampaigns.map((campaign) => (
                     <div key={campaign.id} className="border rounded-lg p-4">
                       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div>
@@ -192,7 +150,7 @@ export default function OrganizationDashboardPage() {
                       <div className="mt-4">
                         <h4 className="text-sm font-medium mb-2">Milestones</h4>
                         <div className="grid grid-cols-4 gap-2">
-                          {campaign.milestones.map((milestone, index) => (
+                          {(campaign as any).milestones && (campaign as any).milestones.map((milestone: any, index: number) => (
                             <div
                               key={index}
                               className={`p-2 rounded-lg text-center text-xs ${
@@ -227,15 +185,15 @@ export default function OrganizationDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {organizationData.recentDonations.map((donation, index) => (
+                  {recentDonations.map((donation, index) => (
                     <div key={index} className="flex justify-between border-b pb-3 last:border-0 last:pb-0">
                       <div>
-                        <h3 className="font-medium">{donation.donor}</h3>
-                        <p className="text-sm text-muted-foreground">{donation.campaign}</p>
+                        <h3 className="font-medium">{donation.donorName}</h3>
+                        <p className="text-sm text-muted-foreground">{donation.campaignTitle}</p>
                         <p className="text-xs text-muted-foreground">{donation.date}</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium">{donation.amount}</p>
+                        <p className="font-medium">{donation.amount} ETH</p>
                       </div>
                     </div>
                   ))}

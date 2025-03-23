@@ -3,48 +3,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Award, TrendingUp, Calendar } from "lucide-react"
+import { mockLeaderboard, mockOrganizationLeaderboard } from "@/lib/mockData"
 
-// Mock data for donors
-const donors = [
-  { rank: 1, name: "John Smith", amount: "120 ETH", campaigns: 8, badges: ["Platinum Donor", "Early Supporter"] },
-  { rank: 2, name: "Emily Davis", amount: "85 ETH", campaigns: 5, badges: ["Gold Donor"] },
-  { rank: 3, name: "Robert Wilson", amount: "62 ETH", campaigns: 4, badges: ["Silver Donor", "Consistent Giver"] },
-  { rank: 4, name: "Lisa Thompson", amount: "45 ETH", campaigns: 3, badges: ["Bronze Donor"] },
-  { rank: 5, name: "Michael Chen", amount: "38 ETH", campaigns: 6, badges: ["Bronze Donor", "Diverse Supporter"] },
-  { rank: 6, name: "Sarah Johnson", amount: "32 ETH", campaigns: 4, badges: ["Bronze Donor"] },
-  { rank: 7, name: "David Rodriguez", amount: "28 ETH", campaigns: 3, badges: ["Bronze Donor"] },
-  { rank: 8, name: "Emma Williams", amount: "25 ETH", campaigns: 5, badges: ["Bronze Donor", "Diverse Supporter"] },
-  { rank: 9, name: "James Brown", amount: "22 ETH", campaigns: 2, badges: ["Bronze Donor"] },
-  { rank: 10, name: "Olivia Martinez", amount: "20 ETH", campaigns: 3, badges: ["Bronze Donor"] },
-]
-
-// Mock data for organizations
-const organizations = [
-  {
-    rank: 1,
-    name: "Global Water Foundation",
-    raised: "320 ETH",
-    campaigns: 4,
-    donors: 450,
-    badges: ["Verified", "Top Performer"],
-  },
-  { rank: 2, name: "Education First", raised: "280 ETH", campaigns: 3, donors: 380, badges: ["Verified"] },
-  {
-    rank: 3,
-    name: "Emergency Response Network",
-    raised: "210 ETH",
-    campaigns: 5,
-    donors: 320,
-    badges: ["Verified", "Rapid Response"],
-  },
-  { rank: 4, name: "Nature Preservation Alliance", raised: "185 ETH", campaigns: 2, donors: 290, badges: ["Verified"] },
-  { rank: 5, name: "Children's Health Initiative", raised: "160 ETH", campaigns: 3, donors: 240, badges: ["Verified"] },
-  { rank: 6, name: "Community Development Fund", raised: "140 ETH", campaigns: 4, donors: 210, badges: ["Verified"] },
-  { rank: 7, name: "Hunger Relief Project", raised: "125 ETH", campaigns: 2, donors: 180, badges: ["Verified"] },
-  { rank: 8, name: "Renewable Energy Coalition", raised: "110 ETH", campaigns: 3, donors: 150, badges: ["Verified"] },
-  { rank: 9, name: "Mental Health Awareness", raised: "95 ETH", campaigns: 2, donors: 130, badges: ["Verified"] },
-  { rank: 10, name: "Animal Welfare Society", raised: "85 ETH", campaigns: 3, donors: 120, badges: ["Verified"] },
-]
+// Get leaderboard data from mockData
+const donors = mockLeaderboard
+const organizations = mockOrganizationLeaderboard
 
 export default function LeaderboardPage() {
   return (
@@ -110,7 +73,7 @@ export default function LeaderboardPage() {
                             <span>{donor.rank}</span>
                           </div>
                           <div>{donor.name}</div>
-                          <div className="text-center font-medium">{donor.amount}</div>
+                          <div className="text-center font-medium">{donor.amount} ETH</div>
                           <div className="text-center">{donor.campaigns}</div>
                           <div className="flex justify-end gap-1 flex-wrap">
                             {donor.badges.map((badge, index) => (
@@ -155,7 +118,7 @@ export default function LeaderboardPage() {
                             <span>{org.rank}</span>
                           </div>
                           <div>{org.name}</div>
-                          <div className="text-center font-medium">{org.raised}</div>
+                          <div className="text-center font-medium">{org.raised} ETH</div>
                           <div className="text-center">
                             {org.campaigns} / {org.donors}
                           </div>

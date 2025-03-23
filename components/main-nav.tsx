@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { Heart, LogIn } from "lucide-react"
+import { LogIn } from "lucide-react"
 import { useAccount } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 
@@ -14,8 +15,13 @@ export function MainNav() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
         <Link href="/" className="flex items-center space-x-2">
-          <Heart className="h-6 w-6 text-primary" />
-          <span className="font-bold">DeNate</span>
+          <Image 
+            src="/DeNate-logo.png" 
+            alt="DeNate Logo" 
+            width={120} 
+            height={40} 
+            className="h-10 w-auto"
+          />
         </Link>
         <nav className="ml-auto flex gap-4 sm:gap-6">
           <Link href="/about" className="text-sm font-medium hover:underline underline-offset-4">

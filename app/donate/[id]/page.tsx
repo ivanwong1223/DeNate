@@ -1,4 +1,5 @@
 import Image from "next/image"
+// This is donate id page
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -6,74 +7,21 @@ import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Heart, Clock, Users, Share2, ExternalLink } from "lucide-react"
-
-// Mock data for a single campaign
-const campaign = {
-  id: 1,
-  title: "Clean Water Initiative",
-  organization: "Global Water Foundation",
-  description: "Providing clean water access to communities in need through sustainable infrastructure projects.",
-  longDescription:
-    "Access to clean water is a fundamental human right, yet millions of people around the world still lack this basic necessity. The Clean Water Initiative aims to address this critical issue by implementing sustainable water infrastructure projects in underserved communities. Our approach combines innovative technology with community engagement to ensure long-term success and impact. Through this campaign, we will build water wells, install filtration systems, and provide education on water conservation and hygiene practices.",
-  raised: 85,
-  goal: 100,
-  donors: 128,
-  daysLeft: 15,
-  image: "/placeholder.svg?height=400&width=800",
-  categories: ["Infrastructure", "Health"],
-  milestones: [
-    {
-      amount: 25,
-      title: "Initial Assessment",
-      description: "Fund initial site assessments and community consultations",
-      completed: true,
-    },
-    {
-      amount: 50,
-      title: "Equipment Purchase",
-      description: "Purchase water filtration systems and construction materials",
-      completed: true,
-    },
-    {
-      amount: 75,
-      title: "Construction Phase",
-      description: "Begin construction of water wells and distribution systems",
-      completed: true,
-    },
-    {
-      amount: 100,
-      title: "Project Completion",
-      description: "Complete construction and implement education programs",
-      completed: false,
-    },
-  ],
-  updates: [
-    {
-      date: "2023-03-15",
-      title: "Project Kickoff",
-      content: "We've officially launched the Clean Water Initiative with community meetings in target regions.",
-    },
-    {
-      date: "2023-04-10",
-      title: "Assessment Complete",
-      content: "Our team has completed the initial assessment of water needs in 5 communities.",
-    },
-    {
-      date: "2023-05-22",
-      title: "Equipment Delivered",
-      content: "All necessary equipment has been delivered to the project sites and construction will begin next week.",
-    },
-  ],
-  recentDonors: [
-    { name: "Anonymous", amount: 5, date: "2023-06-01" },
-    { name: "Sarah Johnson", amount: 10, date: "2023-05-30" },
-    { name: "Michael Chen", amount: 2.5, date: "2023-05-29" },
-    { name: "Emma Williams", amount: 7, date: "2023-05-28" },
-    { name: "David Rodriguez", amount: 3, date: "2023-05-27" },
-  ],
-}
+import { getCampaignDetails } from "@/lib/mockData"
 
 export default function CampaignDetailPage({ params }: { params: { id: string } }) {
+  // Get campaign details from mockData
+  const campaign = getCampaignDetails(params.id)
+  
+  if (!campaign) {
+    return (
+      <div className="flex flex-col min-h-screen items-center justify-center">
+        <h1 className="text-2xl font-bold">Campaign not found</h1>
+        <p className="text-muted-foreground">The campaign you are looking for does not exist.</p>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col min-h-screen">
       <section className="w-full py-12 md:py-24 lg:py-32 bg-muted/50">
@@ -168,7 +116,7 @@ export default function CampaignDetailPage({ params }: { params: { id: string } 
             <TabsContent value="about" className="pt-6">
               <div className="space-y-4">
                 <h2 className="text-2xl font-bold">About This Campaign</h2>
-                <p>{campaign.longDescription}</p>
+                <p>{campaign.longDescription || campaign.description}</p>
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                   <Card>
                     <CardHeader className="pb-2">
@@ -213,12 +161,12 @@ export default function CampaignDetailPage({ params }: { params: { id: string } 
                 </p>
                 <div className="space-y-4">
                   {campaign.milestones.map((milestone, index) => (
-                    <Card key={index} className={milestone.completed ? "border-primary" : ""}>
+                    <Card key={index} className={milestone.status === "completed" ? "border-primary" : ""}>
                       <CardHeader>
                         <div className="flex items-center justify-between">
                           <CardTitle className="text-lg">{milestone.title}</CardTitle>
-                          <Badge variant={milestone.completed ? "default" : "outline"}>
-                            {milestone.completed ? "Completed" : "Pending"}
+                          <Badge variant={milestone.status === "completed" ? "default" : "outline"}>
+                            {milestone.status === "completed" ? "Completed" : "Pending"}
                           </Badge>
                         </div>
                         <CardDescription>{milestone.amount} ETH</CardDescription>
@@ -263,7 +211,7 @@ export default function CampaignDetailPage({ params }: { params: { id: string } 
                   <div className="divide-y">
                     {campaign.recentDonors.map((donor, index) => (
                       <div key={index} className="p-4 grid grid-cols-3">
-                        <div>{donor.name}</div>
+                        <div>{donor.donorName}</div>
                         <div className="text-center">{donor.amount} ETH</div>
                         <div className="text-right">{donor.date}</div>
                       </div>

@@ -1,65 +1,21 @@
 import Link from "next/link"
+// This is donate page
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Heart, Clock, Users } from "lucide-react"
+import { getActiveCampaigns } from "@/lib/mockData"
+import { charityCentral_CA } from "@/config/contractABI"
 
-// Mock data for campaigns
-const campaigns = [
-  {
-    id: 1,
-    title: "Clean Water Initiative",
-    organization: "Global Water Foundation",
-    description: "Providing clean water access to communities in need through sustainable infrastructure projects.",
-    raised: 85,
-    goal: 100,
-    donors: 128,
-    daysLeft: 15,
-    image: "/placeholder.svg?height=200&width=400",
-    categories: ["Infrastructure", "Health"],
-  },
-  {
-    id: 2,
-    title: "Education for All",
-    organization: "Education First",
-    description: "Building schools and providing educational resources for underprivileged children worldwide.",
-    raised: 120,
-    goal: 200,
-    donors: 215,
-    daysLeft: 30,
-    image: "/placeholder.svg?height=200&width=400",
-    categories: ["Education", "Children"],
-  },
-  {
-    id: 3,
-    title: "Disaster Relief Fund",
-    organization: "Emergency Response Network",
-    description: "Providing immediate assistance to communities affected by natural disasters and humanitarian crises.",
-    raised: 45,
-    goal: 150,
-    donors: 78,
-    daysLeft: 7,
-    image: "/placeholder.svg?height=200&width=400",
-    categories: ["Emergency", "Humanitarian"],
-  },
-  {
-    id: 4,
-    title: "Wildlife Conservation",
-    organization: "Nature Preservation Alliance",
-    description:
-      "Protecting endangered species and their habitats through conservation efforts and community engagement.",
-    raised: 65,
-    goal: 120,
-    donors: 92,
-    daysLeft: 22,
-    image: "/placeholder.svg?height=200&width=400",
-    categories: ["Environment", "Conservation"],
-  },
-]
+// Get campaigns data from mockData
+const campaigns = getActiveCampaigns()
 
 export default function DonatePage() {
+  // Check if the contract address is been fetched
+  console.log("Charity Central Contract Address:", charityCentral_CA);
+
   return (
     <div className="flex flex-col min-h-screen">
       <section className="w-full py-12 md:py-24 lg:py-32 bg-muted/50">
