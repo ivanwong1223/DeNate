@@ -87,6 +87,16 @@ export interface DonationRecord {
   transactionHash?: string
 }
 
+// Testimonial Type
+export interface Testimonial {
+  id: string
+  name: string
+  role: string
+  content: string
+  avatar: string
+  rating: number
+}
+
 // Leaderboard Types
 export interface LeaderboardEntry {
   rank: number

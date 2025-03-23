@@ -1,12 +1,18 @@
 import type React from "react"
 import "@/app/globals.css"
-import { Inter } from "next/font/google"
+// import { Inter } from "next/font/google"
+import { Roboto } from "next/font/google";
 import { MainNav } from "@/components/main-nav"
 import { SiteFooter } from "@/components/site-footer"
 import { ThemeProvider } from "@/components/theme-provider"
 import Web3Provider from "@/components/Web3Provider"
+import "primeicons/primeicons.css";
 
-const inter = Inter({ subsets: ["latin"] })
+const roboto = Roboto({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "700", "900"],
+  display: "swap",
+});
 
 export const metadata = {
   title: "DeNate - Transparent Blockchain Charity Platform",
@@ -22,7 +28,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={roboto.className}>
         <Web3Provider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <div className="relative flex min-h-screen flex-col">
