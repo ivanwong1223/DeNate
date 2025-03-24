@@ -78,7 +78,7 @@ export function MainNav() {
         >
             <div className="container mx-auto flex items-center justify-between">
                 {/* Logo (retained from your current navbar) */}
-                <Link href="/" className="flex items-center space-x-2">
+                <Link href="" className="flex items-center space-x-2">
                     <Image
                         src={isScrolling ? "/denate-logo-black.png" : "/DeNate-logo.png"}
                         alt="DeNate Logo"
