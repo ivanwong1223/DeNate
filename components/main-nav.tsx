@@ -1,8 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import {
   Navbar as MTNavbar,
   Collapse,
@@ -53,8 +54,8 @@ function NavItem({ children, href }: NavItemProps) {
         target={href ? "_self" : "_self"} // Adjusted to match your internal navigation
         variant="paragraph"
         className="flex items-center gap-2 font-medium"
-        placeholder={null} 
-        onPointerEnterCapture={undefined} 
+        placeholder={null}
+        onPointerEnterCapture={undefined}
         onPointerLeaveCapture={undefined}
       >
         {children}
@@ -67,6 +68,14 @@ export function MainNav() {
   const { isConnected } = useAccount();
   const [open, setOpen] = React.useState(false);
   const [isScrolling, setIsScrolling] = React.useState(false);
+  const router = useRouter();
+
+  // Redirect to home when disconnected
+  useEffect(() => {
+    if (!isConnected) {
+      router.push("/");
+    }
+  }, [isConnected, router]);
 
   // Toggle the mobile menu
   const handleOpen = () => setOpen((cur) => !cur);
@@ -101,8 +110,8 @@ export function MainNav() {
       blurred={false}
       color={isScrolling ? "white" : "transparent"}
       className="fixed top-0 z-50 border-0"
-      placeholder={null} 
-      onPointerEnterCapture={undefined} 
+      placeholder={null}
+      onPointerEnterCapture={undefined}
       onPointerLeaveCapture={undefined}
     >
       <div className="container mx-auto flex items-center justify-between">
@@ -119,9 +128,8 @@ export function MainNav() {
 
         {/* Navigation Links (About Us, Donate, Leaderboard) */}
         <ul
-          className={`ml-16 hidden items-center gap-6 lg:flex ${
-            isScrolling ? "text-gray-900" : "text-white"
-          }`}
+          className={`ml-16 hidden items-center gap-6 lg:flex ${isScrolling ? "text-gray-900" : "text-white"
+            }`}
         >
           {NAV_MENU.map(({ name, iconClass, href }) => (
             <NavItem key={name} href={href}>
@@ -160,8 +168,8 @@ export function MainNav() {
           color={isScrolling ? "gray" : "white"}
           onClick={handleOpen}
           className="ml-auto inline-block lg:hidden"
-          placeholder={null} 
-          onPointerEnterCapture={undefined} 
+          placeholder={null}
+          onPointerEnterCapture={undefined}
           onPointerLeaveCapture={undefined}
         >
           {open ? (
