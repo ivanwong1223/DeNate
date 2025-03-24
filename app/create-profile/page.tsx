@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useAccount } from "wagmi";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,19 +9,42 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export default function CreateDonorProfile() {
-    const [username, setUsername] = useState("");
+    const { address, isConnected } = useAccount();
+    const [name, setUsername] = useState("");
     const [avatarSeed, setAvatarSeed] = useState(() => Math.random().toString(36).substring(7));
     const router = useRouter();
 
     const changeAvatar = () => setAvatarSeed(Math.random().toString(36).substring(7));
     const avatarUrl = `https://api.dicebear.com/7.x/croodles/svg?seed=${avatarSeed}`;
 
-    const handleSubmit = () => {
-        // Simulate profile creation (add API call if needed)
-        console.log("Profile Created:", { username, avatarSeed });
-        // db call to save the username and avatarSeed
+    const handleSubmit = async () => {
+        if (!isConnected) {
+            alert("Please connect your wallet first!");
+            return;
+        }
 
-        router.push("/"); // Redirect to home
+        const payload = {
+            name,
+            avatar: avatarUrl,
+            walletAddress: address,
+        };
+
+        // Simulated API call — replace with your actual API endpoint
+        const res = await fetch("/api/donors/register", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (res.ok) {
+            alert("Profile created successfully!");
+            router.push("/donors/dashboard");
+        } else {
+            const error = await res.json();
+            alert(`Error: ${error.message}`);
+        }
     };
 
     return (
@@ -40,16 +64,25 @@ export default function CreateDonorProfile() {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="space-y-2">
-                                <Label htmlFor="username">Username</Label>
-                                <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Enter your username" />
+                                <Label htmlFor="name">Username</Label>
+                                <Input
+                                    id="name"
+                                    value={name}
+                                    onChange={(e) => setUsername(e.target.value)}
+                                    placeholder="Enter your username"
+                                />
                             </div>
                             <div className="flex flex-col items-center space-y-2">
                                 <img src={avatarUrl} alt="Avatar" className="w-32 h-32 rounded-full border bg-white p-1 shadow-sm" />
-                                <Button variant="outline" onClick={changeAvatar}>Change Avatar</Button>
+                                <Button variant="outline" onClick={changeAvatar}>
+                                    Change Avatar
+                                </Button>
                             </div>
                         </CardContent>
                         <CardFooter className="flex flex-col items-center gap-2">
-                            <Button className="w-full" onClick={handleSubmit}>Create Profile</Button>
+                            <Button className="w-full" onClick={handleSubmit}>
+                                Create Profile
+                            </Button>
                         </CardFooter>
                     </Card>
                 </div>

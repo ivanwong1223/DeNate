@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import { User, Organization } from '@/lib/types';
+import { User, Organization, Donor } from '@/lib/types';
 
 // Base User Schema
 const userSchema = new Schema<User>({
@@ -25,6 +25,16 @@ const organizationSchema = new Schema<Organization>({
   verified: { type: Boolean, default: false }
 });
 
+// donor Schema (extends User)
+const donorSchema = new Schema<Donor>({
+  name: { type: String, required: true },
+  type: { type: String, enum: ['donor'], required: true },
+  avatar: { type: String, required: true },
+  walletAddress: { type: String, required: true },
+  createdAt: { type: String, default: new Date().toISOString() },
+});
+
 // Create models
 export const UserModel = mongoose.models.User || mongoose.model<User>('User', userSchema);
 export const OrganizationModel = mongoose.models.Organization || mongoose.model<Organization>('Organization', organizationSchema);
+export const DonorModel = mongoose.models.Donor || mongoose.model<Donor>('Donor', donorSchema);

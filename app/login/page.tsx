@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import WalletConnect from "@/components/custom/connect-wallet"
+import WalletConnectDonor from "@/components/custom/connect-wallet-donor"
 
 export default function LoginPage() {
   return (
@@ -27,7 +28,7 @@ export default function LoginPage() {
                   <CardDescription>Connect your wallet to access your donor account</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <WalletConnect />
+                  <WalletConnectDonor />
                 </CardContent>
               </Card>
             </TabsContent>

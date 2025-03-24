@@ -13,6 +13,8 @@ export interface Donor extends User {
   campaigns: number
   rank: number
   badges: string[]
+  avatar: string
+  walletAddress: string
 }
 
 export interface Organization extends User {
