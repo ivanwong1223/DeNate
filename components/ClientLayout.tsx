@@ -9,12 +9,13 @@ import { SiteFooter } from "@/components/site-footer";
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const isCustomNav = pathname.includes("/donors") || pathname.includes("/organizations");
+    const hideNavAndFooter = pathname === "/register";
 
     return (
         <div className="relative flex min-h-screen flex-col">
-            {isCustomNav ? <CustomNav /> : <MainNav />}
+            {!hideNavAndFooter && (isCustomNav ? <CustomNav /> : <MainNav />)}
             <main className="flex-1">{children}</main>
-            <SiteFooter />
+            {!hideNavAndFooter && <SiteFooter />}
         </div>
     );
 }

@@ -23,6 +23,7 @@ export interface Organization extends User {
   badges: string[]
   website?: string
   description?: string
+  walletAddress: string
   verified: boolean
 }
 
