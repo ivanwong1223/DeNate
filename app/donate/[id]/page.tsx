@@ -1,3 +1,8 @@
+"use client";
+
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { useAccount } from 'wagmi'
 import Image from "next/image"
 // This is donate id page
 import { Button } from "@/components/ui/button"
@@ -10,9 +15,11 @@ import { Heart, Clock, Users, Share2, ExternalLink } from "lucide-react"
 import { getCampaignDetails } from "@/lib/mockData"
 
 export default function CampaignDetailPage({ params }: { params: { id: string } }) {
+  const router = useRouter()
+  const { isConnected } = useAccount()
   // Get campaign details from mockData
   const campaign = getCampaignDetails(params.id)
-  
+
   if (!campaign) {
     return (
       <div className="flex flex-col min-h-screen items-center justify-center">
@@ -83,10 +90,16 @@ export default function CampaignDetailPage({ params }: { params: { id: string } 
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button className="w-full">
-                    <Heart className="mr-2 h-4 w-4" />
-                    Donate Now
-                  </Button>
+                  {isConnected ? (
+                    <Button className="w-full">
+                      <Heart className="mr-2 h-4 w-4" />
+                      Donate Now
+                    </Button>
+                  ) : (
+                    <Button className="w-full" onClick={() => router.push("/login")}>
+                      Connect Wallet to Donate
+                    </Button>
+                  )}
                 </CardFooter>
               </Card>
               <div className="flex gap-2 mt-4">

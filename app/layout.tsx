@@ -6,6 +6,7 @@ import { MainNav } from "@/components/main-nav"
 import { SiteFooter } from "@/components/site-footer"
 import { ThemeProvider } from "@/components/theme-provider"
 import Web3Provider from "@/components/Web3Provider"
+import ClientLayout from "@/components/ClientLayout";
 import "primeicons/primeicons.css";
 
 const roboto = Roboto({
@@ -31,11 +32,7 @@ export default function RootLayout({
       <body className={roboto.className}>
         <Web3Provider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-            <div className="relative flex min-h-screen flex-col">
-              <MainNav />
-              <main className="flex-1">{children}</main>
-              <SiteFooter />
-            </div>
+            <ClientLayout>{children}</ClientLayout>
           </ThemeProvider>
         </Web3Provider>
       </body>
