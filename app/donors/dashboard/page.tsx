@@ -8,7 +8,9 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Heart, History } from "lucide-react"
 import { getDonorDashboardData } from "@/lib/mockData"
+import { Donor } from "@/lib/types";
 import { useEffect, useState } from "react"
+import { useAccount } from "wagmi";
 import { ethers } from "ethers"
 import { charityCentral_ABI, charityCentral_CA, charityCampaigns_ABI } from "@/config/contractABI"
 
@@ -16,7 +18,9 @@ import { charityCentral_ABI, charityCentral_CA, charityCampaigns_ABI } from "@/c
 const DEMO_DONOR_ID = "d1"
 
 export default function DonorDashboardPage() {
+  const { address, isConnected } = useAccount();
   const [campaignDetails, setCampaignDetails] = useState<any[]>([])
+  const [orgData, setOrgData] = useState<Partial<Donor> | null>(null);
 
   const contractAddress = charityCentral_CA;
   const contractABI = charityCentral_ABI;
@@ -36,6 +40,29 @@ export default function DonorDashboardPage() {
       type: 'function',
     },
   ];
+
+  useEffect(() => {
+      
+      // Fetch organization data by wallet address
+      const fetchOrgData = async () => {
+        try {
+          const response = await fetch(`/api/donors/getByWallet?walletAddress=${address}`);
+          const data = await response.json();
+          
+          if (!response.ok) {
+            throw new Error(data.error || "Failed to fetch organization data");
+          }
+          
+          setOrgData(data);
+        } catch (err) {
+          console.error("Error fetching organization data:", err);
+        } finally {
+          // setLoading(false);
+        }
+      };
+      
+      fetchOrgData();
+    }, [address, isConnected]);
 
   useEffect(() => {
     const fetchCampaignsDetails = async () => {
@@ -122,7 +149,7 @@ export default function DonorDashboardPage() {
         <div className="container px-4 md:px-6">
           <div className="grid gap-6 lg:grid-cols-[1fr_300px] lg:gap-12">
             <div className="space-y-2">
-              <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Welcome, {donor.name}</h1>
+              <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Welcome, {orgData?.name}</h1>
               <p className="text-muted-foreground">
                 Track your donations, impact, and discover new opportunities to make a difference.
               </p>

@@ -224,12 +224,6 @@ export default function OrganizationDashboardPage() {
                   New Campaign
                 </Button>
               </Link>
-              <Link href="/organizations/settings">
-                <Button variant="outline">
-                  <Settings className="mr-2 h-4 w-4" />
-                  Settings
-                </Button>
-              </Link>
             </div>
           </div>
         </div>
@@ -272,10 +266,10 @@ export default function OrganizationDashboardPage() {
                                 <Users className="mr-1 h-4 w-4" />
                                 <span>{campaign.donors} donors</span>
                               </div>
-                              <div className="flex items-center">
+                              {/* <div className="flex items-center">
                                 <Clock className="mr-1 h-4 w-4" />
                                 <span>{campaign.daysLeft} days left</span>
-                              </div>
+                              </div> */}
                             </div>
                           </div>
                           <div className="flex gap-2">
