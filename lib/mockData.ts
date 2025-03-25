@@ -684,15 +684,16 @@ export const mockDonations: DonationRecord[] = [
   },
 ]
 
-// Mock Leaderboard Data
-export const mockLeaderboard: LeaderboardEntry[] = mockDonors.map((donor) => ({
+// Mock Leaderboard Data with avatar
+export const mockLeaderboard: LeaderboardDonor[] = mockDonors.map((donor) => ({
   rank: donor.rank,
   id: donor.id,
   name: donor.name,
   amount: donor.totalDonated,
   campaigns: donor.campaigns,
   badges: donor.badges,
-}))
+  avatar: donor.avatar
+}));
 
 export const mockOrganizationLeaderboard: OrganizationLeaderboardEntry[] = mockOrganizations.map((org, index) => ({
   rank: index + 1,
@@ -870,5 +871,122 @@ export const mockTestimonials: Testimonial[] = [
 // Export a function to get all testimonials
 export const getTestimonials = (): Testimonial[] => {
   return mockTestimonials;
+}
+
+type GraphDonor = {
+  address: string;
+  totalDonated: string;
+}
+
+type LeaderboardDonor = {
+  rank: number;
+  name: string | null;
+  amount: number;
+  avatar?: string;
+}
+
+async function getUsernameFromDB(address: string): Promise<{ username: string | null; avatar?: string }> {
+  try {
+    const origin = typeof window !== 'undefined' 
+      ? window.location.origin 
+      : process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+    
+    const response = await fetch(`${origin}/api/users?address=${encodeURIComponent(address)}`);
+    
+    if (!response.ok) {
+      if (response.status === 404) {
+        // User not found, return shortened wallet address instead
+        return { 
+          username: `${address.substring(0, 6)}...${address.substring(address.length - 4)}`,
+          avatar: undefined
+        };
+      }
+      return { username: null, avatar: undefined };
+    }
+    
+    const data = await response.json();
+    return { 
+      username: data.username || `${address.substring(0, 6)}...${address.substring(address.length - 4)}`,
+      avatar: data.avatar
+    };
+  } catch (error) {
+    console.error('Error fetching username:', error);
+    return { 
+      username: `${address.substring(0, 6)}...${address.substring(address.length - 4)}`,
+      avatar: undefined 
+    };
+  }
+}
+
+async function fetchOverallLeaderboard(): Promise<GraphDonor[]> {
+  try {
+    const response = await fetch('https://api.studio.thegraph.com/query/105145/denate/version/latest', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query: `
+          query GlobalLeaderboard {
+            donors(orderBy: totalDonated, orderDirection: desc, first: 100) {
+              address
+              totalDonated
+            }
+          }
+        `
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch from The Graph');
+    }
+
+    const data = await response.json();
+    return data.data.donors;
+  } catch (error) {
+    console.error('Error fetching from The Graph:', error);
+    return [];
+  }
+}
+
+
+export async function getLeaderboard(): Promise<LeaderboardDonor[]> {
+  try {
+    const graphDonors = await fetchOverallLeaderboard();
+    
+    if (graphDonors && graphDonors.length > 0) {
+      const leaderboardEntries = await Promise.all(
+        graphDonors.map(async (donor, index) => {
+          const { username, avatar } = await getUsernameFromDB(donor.address);
+          const amountInWei = donor.totalDonated;
+          
+          return {
+            rank: index + 1,
+            name: username,
+            amount: parseInt(amountInWei),
+            avatar: avatar
+          };
+        })
+      );
+      
+      return leaderboardEntries;
+    } else {
+      console.log("Falling back to mock leaderboard data");
+      return mockLeaderboard.map(entry => ({
+        rank: entry.rank,
+        name: entry.name,
+        amount: entry.amount * 1000000000000000000,
+        avatar: entry.avatar
+      }));
+    }
+  } catch (error) {
+    console.error("Error fetching leaderboard data:", error);
+    return mockLeaderboard.map(entry => ({
+      rank: entry.rank,
+      name: entry.name,
+      amount: entry.amount * 1000000000000000000,
+      avatar: entry.avatar
+    }));
+  }
 }
 
