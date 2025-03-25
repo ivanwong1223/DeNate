@@ -1,20 +1,15 @@
 "use client";
 
 import Link from "next/link"
-// This is donate page
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Heart, Clock, Users } from "lucide-react"
-import { getActiveCampaigns } from "@/lib/mockData"
 import { useEffect, useState } from "react"
 import { ethers } from "ethers"
-import { charityCentral_ABI, charityCentral_CA, charityCampaigns_ABI } from "@/config/contractABI"
-
-// Get campaigns data from mockData
-const campaigns = getActiveCampaigns()
+import { charityCentral_ABI, charityCentral_CA } from "@/config/contractABI"
 
 export default function DonatePage() {
   const [campaignDetails, setCampaignDetails] = useState<any[]>([])
@@ -46,52 +41,31 @@ export default function DonatePage() {
       }
 
       try {
-        // Create provider
         const provider = new ethers.BrowserProvider(window.ethereum);
-
-        // Request wallet connection
         await window.ethereum.request({ method: "eth_requestAccounts" });
-
-        // Get signer
         const signer = await provider.getSigner();
-
-        // Instantiate charity central contract
-        const centralContract = new ethers.Contract(
-          contractAddress,
-          contractABI,
-          signer
-        );
-
-        // Fetch campaign addresses
+        const centralContract = new ethers.Contract(contractAddress, contractABI, signer);
         const campaignAddresses = await centralContract.getAllCampaigns();
 
-        // Fetch details for each campaign
         const detailedCampaigns = await Promise.all(
           campaignAddresses.map(async (address: string) => {
-            // Create contract instance for each campaign
-            const campaignContract = new ethers.Contract(
-              address,
-              charityCampaignABI,
-              signer
-            );
-
-            // Fetch campaign details
+            const campaignContract = new ethers.Contract(address, charityCampaignABI, signer);
             const details = await campaignContract.getCampaignDetails();
-
-            // Return details with the campaign address
             return {
               address,
               name: details[0],
               description: details[1],
-              goal: ethers.formatUnits(details[2], 18), // Assuming ETH has 18 decimals
+              goal: ethers.formatUnits(details[2], 18),
               totalDonated: ethers.formatUnits(details[3], 18),
               state: details[4],
-              charityAddress: details[5]
+              charityAddress: details[5],
+              donors: Math.floor(Math.random() * 100), // Placeholder value
+              daysLeft: Math.floor(Math.random() * 50), // Placeholder value
+              image: "/donors.png",
             };
           })
         );
 
-        // Update state with detailed campaigns
         setCampaignDetails(detailedCampaigns);
         console.log("Detailed Campaigns:", detailedCampaigns);
 
@@ -102,8 +76,7 @@ export default function DonatePage() {
 
     fetchCampaignsDetails();
   }, []);
-  
-  // Check if the contract address is been fetched
+
   console.log("Charity Central Contract Address:", charityCentral_CA);
 
   return (
@@ -137,36 +110,28 @@ export default function DonatePage() {
             </div>
           </div>
           <div className="grid gap-6 pt-8 md:grid-cols-2 lg:grid-cols-3">
-            {campaigns.map((campaign) => (
-              <Card key={campaign.id} className="overflow-hidden">
+            {campaignDetails.map((campaign, index) => (
+              <Card key={index} className="overflow-hidden">
                 <div className="relative">
                   <Image
                     src={campaign.image || "/placeholder.svg"}
-                    alt={campaign.title}
+                    alt={campaign.name}
                     width={400}
                     height={200}
                     className="w-full object-cover h-[200px]"
                   />
-                  <div className="absolute top-2 right-2 flex gap-2">
-                    {campaign.categories.map((category, index) => (
-                      <Badge key={index} variant="secondary" className="bg-background/80 backdrop-blur-sm">
-                        {category}
-                      </Badge>
-                    ))}
-                  </div>
                 </div>
                 <CardHeader>
-                  <CardTitle>{campaign.title}</CardTitle>
-                  <CardDescription>{campaign.organization}</CardDescription>
+                  <CardTitle>{campaign.name}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-sm text-muted-foreground">{campaign.description}</p>
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="font-medium">{campaign.raised} ETH raised</span>
+                      <span className="font-medium">{campaign.totalDonated} ETH raised</span>
                       <span className="text-muted-foreground">of {campaign.goal} ETH goal</span>
                     </div>
-                    <Progress value={(campaign.raised / campaign.goal) * 100} className="h-2" />
+                    <Progress value={(parseFloat(campaign.totalDonated) / parseFloat(campaign.goal)) * 100} className="h-2" />
                   </div>
                   <div className="flex justify-between text-sm text-muted-foreground">
                     <div className="flex items-center">
@@ -180,7 +145,7 @@ export default function DonatePage() {
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Link href={`/donate/${campaign.id}`} className="w-full">
+                  <Link href={`/donate/${campaign.address}`} className="w-full">
                     <Button className="w-full">
                       <Heart className="mr-2 h-4 w-4" />
                       Donate Now
@@ -195,4 +160,3 @@ export default function DonatePage() {
     </div>
   )
 }
-

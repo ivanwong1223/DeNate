@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link"
 // This is donors dashboard
 import { Button } from "@/components/ui/button"
@@ -6,11 +8,100 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Heart, History } from "lucide-react"
 import { getDonorDashboardData } from "@/lib/mockData"
+import { useEffect, useState } from "react"
+import { ethers } from "ethers"
+import { charityCentral_ABI, charityCentral_CA, charityCampaigns_ABI } from "@/config/contractABI"
 
 // For demo purposes, using a static donor ID - in a real app, this would come from authentication
 const DEMO_DONOR_ID = "d1"
 
 export default function DonorDashboardPage() {
+  const [campaignDetails, setCampaignDetails] = useState<any[]>([])
+
+  const contractAddress = charityCentral_CA;
+  const contractABI = charityCentral_ABI;
+  const charityCampaignABI = [
+    {
+      inputs: [],
+      name: 'getCampaignDetails',
+      outputs: [
+        { internalType: 'string', name: 'name', type: 'string' },
+        { internalType: 'string', name: 'description', type: 'string' },
+        { internalType: 'uint256', name: 'goal', type: 'uint256' },
+        { internalType: 'uint256', name: 'totalDonated', type: 'uint256' },
+        { internalType: 'uint8', name: 'state', type: 'uint8' },
+        { internalType: 'address', name: 'charityAddress', type: 'address' }
+      ],
+      stateMutability: 'view',
+      type: 'function',
+    },
+  ];
+
+  useEffect(() => {
+    const fetchCampaignsDetails = async () => {
+      if (typeof window.ethereum === "undefined") {
+        console.error("MetaMask not detected. Please install a wallet.");
+        return;
+      }
+
+      try {
+        // Create provider
+        const provider = new ethers.BrowserProvider(window.ethereum);
+
+        // Request wallet connection
+        await window.ethereum.request({ method: "eth_requestAccounts" });
+
+        // Get signer
+        const signer = await provider.getSigner();
+
+        // Instantiate charity central contract
+        const centralContract = new ethers.Contract(
+          contractAddress,
+          contractABI,
+          signer
+        );
+
+        // Fetch campaign addresses
+        const campaignAddresses = await centralContract.getAllCampaigns();
+
+        // Fetch details for each campaign
+        const detailedCampaigns = await Promise.all(
+          campaignAddresses.map(async (address: string) => {
+            // Create contract instance for each campaign
+            const campaignContract = new ethers.Contract(
+              address,
+              charityCampaignABI,
+              signer
+            );
+
+            // Fetch campaign details
+            const details = await campaignContract.getCampaignDetails();
+
+            // Return details with the campaign address
+            return {
+              address,
+              name: details[0],
+              description: details[1],
+              goal: ethers.formatUnits(details[2], 18), // Assuming ETH has 18 decimals
+              totalDonated: ethers.formatUnits(details[3], 18),
+              state: details[4],
+              charityAddress: details[5]
+            };
+          })
+        );
+
+        // Update state with detailed campaigns
+        setCampaignDetails(detailedCampaigns);
+        console.log("Detailed Campaigns:", detailedCampaigns);
+
+      } catch (error) {
+        console.error("Error fetching campaign details:", error);
+      }
+    };
+
+    fetchCampaignsDetails();
+  }, []);
+
   // Get donor dashboard data from mockData
   const donorData = getDonorDashboardData(DEMO_DONOR_ID)
 
@@ -123,24 +214,24 @@ export default function DonorDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {activeCampaigns.map((campaign) => (
-                    <div key={campaign.id} className="space-y-2">
+                  {campaignDetails.map((campaign, index) => (
+                    <div key={index} className="space-y-2">
                       <div className="flex justify-between">
                         <div>
-                          <h3 className="font-medium">{campaign.title}</h3>
-                          <p className="text-sm text-muted-foreground">{campaign.organization}</p>
+                          <h3 className="font-medium">{campaign.name}</h3>
+                          <p className="text-sm text-muted-foreground">{campaign.charityAddress}</p>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium">{(campaign as any).donated} ETH</p>
+                          <p className="font-medium">{campaign.totalDonated} ETH</p>
                           <p className="text-sm text-muted-foreground">Your donation</p>
                         </div>
                       </div>
                       <div className="space-y-1">
                         <div className="flex justify-between text-xs">
-                          <span>{campaign.raised} ETH raised</span>
+                          <span>{campaign.totalDonated} ETH raised</span>
                           <span>{campaign.goal} ETH goal</span>
                         </div>
-                        <Progress value={(campaign.raised / campaign.goal) * 100} className="h-2" />
+                        <Progress value={(campaign.totalDonated / campaign.goal) * 100} className="h-2" />
                       </div>
                     </div>
                   ))}
