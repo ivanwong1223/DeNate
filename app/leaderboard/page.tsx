@@ -1,29 +1,46 @@
+"use client";
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Award, TrendingUp, Calendar, User } from "lucide-react"
 import { getLeaderboard } from "@/lib/mockData"
 import Image from "next/image"
+import { useAccount } from "wagmi"
+import { useEffect, useState } from "react"
 
-// Helper function to format large WEI numbers
-function formatWei(wei: number): string {
-  if (wei >= 1e18) {
-    return `${(wei / 1e18).toFixed(2)} ETH`;
-  } else if (wei >= 1e15) {
-    return `${(wei / 1e15).toFixed(2)} Finney`;
-  } else if (wei >= 1e12) {
-    return `${(wei / 1e12).toFixed(2)} Szabo`;
-  } else if (wei >= 1e9) {
-    return `${(wei / 1e9).toFixed(2)} Gwei`;
-  } else if (wei >= 1e6) {
-    return `${(wei / 1e6).toFixed(2)} Mwei`;
-  } else {
-    return `${wei} WEI`;
-  }
+// Helper function to format WEI to ETH with proper decimal display
+function formatToEth(wei: number): string {
+  // Convert wei to ETH (1 ETH = 10^18 wei)
+  const ethValue = wei / 1000000000000000000;
+  
+  // Use toLocaleString to ensure it doesn't use scientific notation
+  // and displays the full decimal value up to 18 places
+  return ethValue.toLocaleString('fullwide', { 
+    useGrouping: false,
+    maximumFractionDigits: 18 
+  }) + " ETH";
 }
 
-export default async function LeaderboardPage() {
-  const donors = await getLeaderboard()
+export default function LeaderboardPage() {
+  const { address, isConnected } = useAccount();
+  const [donors, setDonors] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchLeaderboard = async () => {
+      try {
+        const leaderboardData = await getLeaderboard();
+        setDonors(leaderboardData);
+      } catch (error) {
+        console.error("Error fetching leaderboard:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLeaderboard();
+  }, []);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -67,44 +84,69 @@ export default async function LeaderboardPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="rounded-lg border">
-                    <div className="grid grid-cols-3 p-4 font-medium">
-                      <div>Rank</div>
-                      <div>Donor</div>
-                      <div className="text-center">Total Donated</div>
+                  {loading ? (
+                    <div className="flex justify-center py-8">
+                      <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
                     </div>
-                    <div className="divide-y">
-                      {donors.map((donor) => (
-                        <div key={donor.rank} className="grid grid-cols-3 p-4 items-center">
-                          <div className="flex items-center">
-                            {donor.rank <= 3 ? (
-                              <Award
-                                className={`h-5 w-5 mr-1 ${donor.rank === 1 ? "text-yellow-500" : donor.rank === 2 ? "text-gray-400" : "text-amber-600"}`}
-                              />
-                            ) : null}
-                            <span>{donor.rank}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {donor.avatar ? (
-                              <Image 
-                                src={donor.avatar} 
-                                alt={donor.name || "Anonymous"}
-                                width={32}
-                                height={32}
-                                className="rounded-full h-8 w-8"
-                              />
-                            ) : (
-                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
-                                <User className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <div className="rounded-lg border">
+                      <div className="grid grid-cols-3 p-4 font-medium">
+                        <div>Rank</div>
+                        <div>Donor</div>
+                        <div className="text-center">Total Donated</div>
+                      </div>
+                      <div className="divide-y">
+                        {donors.map((donor) => {
+                          // Check if this is the current user's entry by direct address comparison
+                          const isCurrentUser = isConnected && address && 
+                            donor.address && donor.address.toLowerCase() === address.toLowerCase();
+                            
+                          return (
+                            <div 
+                              key={donor.rank} 
+                              className={`grid grid-cols-3 p-4 items-center ${isCurrentUser ? 'bg-primary/10 border-l-4 border-primary' : ''}`}
+                            >
+                              <div className="flex items-center">
+                                {donor.rank <= 3 ? (
+                                  <Award
+                                    className={`h-5 w-5 mr-1 ${
+                                      donor.rank === 1 
+                                        ? "text-yellow-500" 
+                                        : donor.rank === 2 
+                                          ? "text-gray-400" 
+                                          : "text-amber-600"
+                                    }`}
+                                  />
+                                ) : null}
+                                <span>{donor.rank}</span>
                               </div>
-                            )}
-                            <span>{donor.name || 'Anonymous'}</span>
-                          </div>
-                          <div className="text-center font-medium">{formatWei(donor.amount)}</div>
-                        </div>
-                      ))}
+                              <div className="flex items-center gap-2">
+                                {donor.avatar ? (
+                                  <Image 
+                                    src={donor.avatar} 
+                                    alt={donor.name || "Anonymous"}
+                                    width={32}
+                                    height={32}
+                                    className="rounded-full h-8 w-8"
+                                  />
+                                ) : (
+                                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
+                                    <User className="h-4 w-4 text-muted-foreground" />
+                                  </div>
+                                )}
+                                <span className={isCurrentUser ? "font-medium" : ""}>
+                                  {isCurrentUser ? `${donor.name} (You)` : donor.name || 'Anonymous'}
+                                </span>
+                              </div>
+                              <div className="text-center font-medium">
+                                {formatToEth(donor.amount)}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -112,6 +154,6 @@ export default async function LeaderboardPage() {
         </div>
       </section>
     </div>
-  )
+  );
 }
 

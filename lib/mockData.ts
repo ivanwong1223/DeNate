@@ -958,13 +958,14 @@ export async function getLeaderboard(): Promise<LeaderboardDonor[]> {
       const leaderboardEntries = await Promise.all(
         graphDonors.map(async (donor, index) => {
           const { username, avatar } = await getUsernameFromDB(donor.address);
-          const amountInWei = donor.totalDonated;
+          const amountInWei = BigInt(donor.totalDonated);
           
           return {
             rank: index + 1,
             name: username,
-            amount: parseInt(amountInWei),
-            avatar: avatar
+            amount: Number(amountInWei),
+            avatar: avatar,
+            address: donor.address 
           };
         })
       );
@@ -975,8 +976,9 @@ export async function getLeaderboard(): Promise<LeaderboardDonor[]> {
       return mockLeaderboard.map(entry => ({
         rank: entry.rank,
         name: entry.name,
-        amount: entry.amount * 1000000000000000000,
-        avatar: entry.avatar
+        amount: entry.amount * 1000000000000000000, 
+        avatar: entry.avatar,
+        address: "" 
       }));
     }
   } catch (error) {
@@ -984,8 +986,9 @@ export async function getLeaderboard(): Promise<LeaderboardDonor[]> {
     return mockLeaderboard.map(entry => ({
       rank: entry.rank,
       name: entry.name,
-      amount: entry.amount * 1000000000000000000,
-      avatar: entry.avatar
+      amount: entry.amount * 1000000000000000000, 
+      avatar: entry.avatar,
+      address: "" 
     }));
   }
 }
