@@ -75,6 +75,26 @@ export default function RegisterPage() {
       setSuccess("Organization registered successfully! Redirecting...");
       // Store the wallet address in session storage
       window.sessionStorage.setItem("walletAddress", formData.walletAddress);
+
+      // 2. Verify the charity on-chain (Blockchain)
+      const verifyResponse = await fetch("/api/organizations/verify-charity", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          walletAddress: formData.walletAddress,
+        }),
+      });
+
+      const verifyData = await verifyResponse.json();
+      if (!verifyResponse.ok) {
+        throw new Error(verifyData.error || "Verification failed");
+      }
+
+      console.log("Charity verified on-chain:", verifyData.txHash);
+
       setTimeout(() => {
         router.push("/organizations/dashboard");
       }, 2000); // Redirect after 2 seconds
@@ -289,10 +309,10 @@ export default function RegisterPage() {
               </Button>
             </motion.div>
 
-            <CardFooter 
+            <CardFooter
               className="pt-0 text-center"
-              placeholder={null} 
-              onPointerEnterCapture={undefined} 
+              placeholder={null}
+              onPointerEnterCapture={undefined}
               onPointerLeaveCapture={undefined}
             >
               <Typography variant="small" className="mt-4 text-gray-900" placeholder={null} onPointerEnterCapture={undefined} onPointerLeaveCapture={undefined}>

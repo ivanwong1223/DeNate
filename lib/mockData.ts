@@ -26,6 +26,8 @@ export const mockDonors: Donor[] = [
     rank: 1,
     badges: ["Platinum Donor", "Early Supporter"],
     createdAt: "2023-01-15",
+    avatar: "",
+    walletAddress: "",
   },
   {
     id: "d2",
@@ -37,6 +39,8 @@ export const mockDonors: Donor[] = [
     rank: 2,
     badges: ["Gold Donor"],
     createdAt: "2023-02-10",
+    avatar: "",
+    walletAddress: "",
   },
   {
     id: "d3",
@@ -48,6 +52,8 @@ export const mockDonors: Donor[] = [
     rank: 3,
     badges: ["Silver Donor", "Consistent Giver"],
     createdAt: "2023-01-20",
+    avatar: "",
+    walletAddress: "",
   },
   {
     id: "d4",
@@ -59,6 +65,8 @@ export const mockDonors: Donor[] = [
     rank: 4,
     badges: ["Bronze Donor"],
     createdAt: "2023-03-05",
+    avatar: "",
+    walletAddress: "",
   },
   {
     id: "d5",
@@ -70,6 +78,8 @@ export const mockDonors: Donor[] = [
     rank: 5,
     badges: ["Bronze Donor", "Diverse Supporter"],
     createdAt: "2023-02-18",
+    avatar: "",
+    walletAddress: "",
   },
   {
     id: "d6",
@@ -81,6 +91,8 @@ export const mockDonors: Donor[] = [
     rank: 6,
     badges: ["Bronze Donor"],
     createdAt: "2023-03-22",
+    avatar: "",
+    walletAddress: "",
   },
   {
     id: "d7",
@@ -92,6 +104,8 @@ export const mockDonors: Donor[] = [
     rank: 7,
     badges: ["Bronze Donor"],
     createdAt: "2023-04-10",
+    avatar: "",
+    walletAddress: "",
   },
   {
     id: "d8",
@@ -103,6 +117,8 @@ export const mockDonors: Donor[] = [
     rank: 8,
     badges: ["Bronze Donor", "Diverse Supporter"],
     createdAt: "2023-03-15",
+    avatar: "",
+    walletAddress: "",
   },
   {
     id: "d9",
@@ -114,6 +130,8 @@ export const mockDonors: Donor[] = [
     rank: 9,
     badges: ["Bronze Donor"],
     createdAt: "2023-04-05",
+    avatar: "",
+    walletAddress: "",
   },
   {
     id: "d10",
@@ -125,6 +143,8 @@ export const mockDonors: Donor[] = [
     rank: 10,
     badges: ["Bronze Donor"],
     createdAt: "2023-04-18",
+    avatar: "",
+    walletAddress: "",
   },
 ]
 
