@@ -1,19 +1,24 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Loader2 } from "lucide-react";
+import { Organization } from "@/lib/types";
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { PlusCircle, BarChart3, Clock, Users, FileText, Bell, Settings } from "lucide-react"
 import { getOrganizationDashboardData } from "@/lib/mockData"
 
-// For demo purposes, using a static organization ID - in a real app, this would come from authentication
-const DEMO_ORGANIZATION_ID = "o1"  // Which means need to pass the organization ID that has logged in to here
+const DEMO_ORGANIZATION_ID = "o1"
 
 export default function OrganizationDashboardPage() {
-  // Get organization dashboard data from mockData
-  const orgData = getOrganizationDashboardData(DEMO_ORGANIZATION_ID)
 
-  if (!orgData) {
+  // Get organization dashboard data from mockData
+  const orgDatas = getOrganizationDashboardData(DEMO_ORGANIZATION_ID)
+
+  if (!orgDatas) {
     return (
       <div className="flex flex-col min-h-screen items-center justify-center">
         <h1 className="text-2xl font-bold">Organization not found</h1>
@@ -22,7 +27,65 @@ export default function OrganizationDashboardPage() {
     )
   }
 
-  const { organization, activeCampaigns, recentDonations } = orgData
+  const { organization, activeCampaigns, recentDonations } = orgDatas
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [orgData, setOrgData] = useState<Partial<Organization> | null>(null);
+
+  useEffect(() => {
+    const walletAddress = window.sessionStorage.getItem("walletAddress");
+    
+    if (!walletAddress) {
+      setError("No wallet address found. Please register or login again.");
+      setLoading(false);
+      return;
+    }
+    
+    // Fetch organization data by wallet address
+    const fetchOrgData = async () => {
+      try {
+        const response = await fetch(`/api/organizations/getByWallet?walletAddress=${walletAddress}`);
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to fetch organization data");
+        }
+        
+        setOrgData(data);
+      } catch (err) {
+        console.error("Error fetching organization data:", err);
+        setError(err instanceof Error ? err.message : "Failed to fetch organization data");
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchOrgData();
+  }, []);
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+        <h1 className="text-2xl font-bold">Loading organization data...</h1>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error || !orgData) {
+    return (
+      <div className="flex flex-col min-h-screen items-center justify-center">
+        <h1 className="text-2xl font-bold text-red-500">Error</h1>
+        <p className="text-muted-foreground">{error || "Failed to load organization data"}</p>
+        <Button className="mt-4" onClick={() => window.location.href = "/register"}>
+          Register Again
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -31,11 +94,13 @@ export default function OrganizationDashboardPage() {
           <div className="grid gap-6 lg:grid-cols-[1fr_300px] lg:gap-12">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">{organization.name}</h1>
-                {organization.verified && <Badge className="ml-2">Verified</Badge>}
+                <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
+                  {orgData.name}
+                </h1>
+                {orgData.verified && <Badge className="ml-2">Verified</Badge>}
               </div>
               <p className="text-muted-foreground">
-                Manage your campaigns, track donations, and view your impact metrics.
+                {orgData.description || "No description available."}
               </p>
             </div>
             <div className="flex items-center justify-end gap-4">
@@ -58,7 +123,7 @@ export default function OrganizationDashboardPage() {
 
       <section className="w-full py-12 md:py-24 lg:py-32">
         <div className="container px-4 md:px-6">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {/* <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium">Total Raised</CardTitle>
@@ -101,7 +166,7 @@ export default function OrganizationDashboardPage() {
                 </div>
               </CardContent>
             </Card>
-          </div>
+          </div> */}
 
           <div className="grid gap-6 mt-8 lg:grid-cols-2">
             <Card className="lg:col-span-2">
@@ -116,6 +181,7 @@ export default function OrganizationDashboardPage() {
                       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div>
                           <h3 className="font-medium text-lg">{campaign.title}</h3>
+                          <span className="text-gray-50">{campaign.description}</span>
                           <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
                             <div className="flex items-center">
                               <Users className="mr-1 h-4 w-4" />

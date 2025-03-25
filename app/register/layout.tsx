@@ -15,4 +15,4 @@ export default function RegisterLayout({
       <main>{children}</main>
     </div>
   );
-} 
+}

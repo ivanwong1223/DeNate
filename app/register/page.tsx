@@ -73,6 +73,8 @@ export default function RegisterPage() {
 
       // Registration successful
       setSuccess("Organization registered successfully! Redirecting...");
+      // Store the wallet address in session storage
+      window.sessionStorage.setItem("walletAddress", formData.walletAddress);
       setTimeout(() => {
         router.push("/organizations/dashboard");
       }, 2000); // Redirect after 2 seconds
