@@ -216,7 +216,7 @@ export default function Home() {
                         <span>{donor.name}</span>
                       </div>
                       <div className="flex items-center justify-center font-medium">{donor.amount} ETH</div>
-                      <div className="flex items-center justify-end">{donor.campaigns}</div>
+                      {/* <div className="flex items-center justify-end">{donor.campaigns}</div> */}
                     </div>
                   </div>
                 ))}
