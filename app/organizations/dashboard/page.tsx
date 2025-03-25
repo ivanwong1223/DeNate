@@ -4,40 +4,45 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2 } from "lucide-react";
+import { Loader2, PlusCircle, Settings, Users, Clock } from "lucide-react";
 import { Organization } from "@/lib/types";
-import Link from "next/link"
-import { Progress } from "@/components/ui/progress"
-import { PlusCircle, BarChart3, Clock, Users, FileText, Bell, Settings } from "lucide-react"
-import { getOrganizationDashboardData } from "@/lib/mockData"
+import Link from "next/link";
+import { Progress } from "@/components/ui/progress";
+import { getOrganizationDashboardData } from "@/lib/mockData";
+import { useAccount } from "wagmi";
+import { charityCentral_CA, charityCentral_ABI, charityCampaigns_ABI } from "@/config/contractABI";
+import { ethers } from "ethers";
 
-const DEMO_ORGANIZATION_ID = "o1"
+// Campaign interface based on the contract structure
+interface Campaign {
+  id: string;
+  address: string;
+  title: string;
+  description: string;
+  goal: string;
+  raised: string;
+  daysLeft: number;
+  donors: number;
+  milestones?: {
+    title: string;
+    amount: string;
+    status: string;
+  }[];
+}
 
 export default function OrganizationDashboardPage() {
-
-  // Get organization dashboard data from mockData
-  const orgDatas = getOrganizationDashboardData(DEMO_ORGANIZATION_ID)
-
-  if (!orgDatas) {
-    return (
-      <div className="flex flex-col min-h-screen items-center justify-center">
-        <h1 className="text-2xl font-bold">Organization not found</h1>
-        <p className="text-muted-foreground">The organization dashboard you are looking for does not exist.</p>
-      </div>
-    )
-  }
-
-  const { organization, activeCampaigns, recentDonations } = orgDatas
-
+  const { address, isConnected } = useAccount();
   const [loading, setLoading] = useState(true);
+  const [campaignsLoading, setCampaignsLoading] = useState(true);
   const [error, setError] = useState("");
   const [orgData, setOrgData] = useState<Partial<Organization> | null>(null);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
 
+  // Get org data from database
   useEffect(() => {
-    const walletAddress = window.sessionStorage.getItem("walletAddress");
-    
-    if (!walletAddress) {
-      setError("No wallet address found. Please register or login again.");
+    // Get wallet address from connected wallet
+    if (!isConnected || !address) {
+      setError("No wallet connected. Please connect your wallet.");
       setLoading(false);
       return;
     }
@@ -45,7 +50,7 @@ export default function OrganizationDashboardPage() {
     // Fetch organization data by wallet address
     const fetchOrgData = async () => {
       try {
-        const response = await fetch(`/api/organizations/getByWallet?walletAddress=${walletAddress}`);
+        const response = await fetch(`/api/organizations/getByWallet?walletAddress=${address}`);
         const data = await response.json();
         
         if (!response.ok) {
@@ -62,7 +67,106 @@ export default function OrganizationDashboardPage() {
     };
     
     fetchOrgData();
-  }, []);
+  }, [address, isConnected]);
+
+  // Get campaign data from smart contract
+  useEffect(() => {
+    if (!address || !isConnected || !orgData) return;
+
+    const fetchCampaignData = async () => {
+      setCampaignsLoading(true);
+      try {
+        // Connect to provider - updated for ethers v6
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        
+        // Create contract instances
+        const centralContract = new ethers.Contract(
+          charityCentral_CA,
+          charityCentral_ABI,
+          provider
+        );
+        
+        // Get charity campaigns
+        const campaignAddresses = await centralContract.getCharityCampaigns(address);
+        
+        if (campaignAddresses.length === 0) {
+          setCampaigns([]);
+          setCampaignsLoading(false);
+          return;
+        }
+        
+        // Fetch details for each campaign
+        const campaignDetailsPromises = campaignAddresses.map(async (campaignAddress: string) => {
+          const campaignContract = new ethers.Contract(
+            campaignAddress,
+            charityCampaigns_ABI[0], // Using the first ABI in the array
+            provider
+          );
+          
+          // Call getCampaignDetails
+          const details = await campaignContract.getCampaignDetails();
+          
+          // Get total donated
+          const totalDonated = await campaignContract.totalDonated();
+          
+          // Create a campaign object with the retrieved data
+          return {
+            id: campaignAddress,
+            address: campaignAddress,
+            title: details._name,
+            description: details._description,
+            goal: ethers.formatEther(details._goal),
+            raised: ethers.formatEther(totalDonated),
+            daysLeft: 30, // Default value
+            donors: 0, // Will fetch separately
+            state: details._state
+          };
+        });
+        
+        const campaignDetails = await Promise.all(campaignDetailsPromises);
+        
+        // Fetch additional details for each campaign
+        const enhancedCampaignsPromises = campaignDetails.map(async (campaign) => {
+          const campaignContract = new ethers.Contract(
+            campaign.address,
+            charityCampaigns_ABI[0],
+            provider
+          );
+          
+          // Get donor count
+          try {
+            const donors = await campaignContract.getAllDonors();
+            campaign.donors = donors.length;
+          } catch (error) {
+            console.error("Error fetching donors for campaign:", error);
+          }
+          
+          // Get milestones
+          try {
+            const milestones = await campaignContract.getMilestones();
+            campaign.milestones = milestones.targets.map((target: bigint, index: number) => ({
+              title: `Milestone ${index + 1}`,
+              amount: ethers.formatEther(target),
+              status: milestones.reached[index] ? "completed" : "pending"
+            }));
+          } catch (error) {
+            console.error("Error fetching milestones for campaign:", error);
+          }
+          
+          return campaign;
+        });
+        
+        const enhancedCampaigns = await Promise.all(enhancedCampaignsPromises);
+        setCampaigns(enhancedCampaigns);
+      } catch (error) {
+        console.error("Error fetching campaign data:", error);
+      } finally {
+        setCampaignsLoading(false);
+      }
+    };
+    
+    fetchCampaignData();
+  }, [address, isConnected, orgData]);
 
   // Show loading state
   if (loading) {
@@ -80,9 +184,19 @@ export default function OrganizationDashboardPage() {
       <div className="flex flex-col min-h-screen items-center justify-center">
         <h1 className="text-2xl font-bold text-red-500">Error</h1>
         <p className="text-muted-foreground">{error || "Failed to load organization data"}</p>
-        <Button className="mt-4" onClick={() => window.location.href = "/register"}>
-          Register Again
-        </Button>
+        {!isConnected && (
+          <div className="mt-4 text-center">
+            <p className="mb-2">Please connect your wallet first</p>
+            <Button onClick={() => window.location.href = "/"}>
+              Return to Home
+            </Button>
+          </div>
+        )}
+        {isConnected && !orgData && (
+          <Button className="mt-4" onClick={() => window.location.href = "/register"}>
+            Register Your Organization
+          </Button>
+        )}
       </div>
     );
   }
@@ -123,51 +237,6 @@ export default function OrganizationDashboardPage() {
 
       <section className="w-full py-12 md:py-24 lg:py-32">
         <div className="container px-4 md:px-6">
-          {/* <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Total Raised</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{organization.totalRaised} ETH</div>
-                <p className="text-xs text-muted-foreground">Across {organization.campaigns} campaigns</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Total Donors</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{organization.donors}</div>
-                <p className="text-xs text-muted-foreground">Supporting your mission</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Active Campaigns</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{activeCampaigns.length}</div>
-                <p className="text-xs text-muted-foreground">Currently running</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Organization Badges</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{organization.badges.length}</div>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {organization.badges.map((badge, index) => (
-                    <Badge key={index} variant="outline" className="text-xs">
-                      {badge}
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div> */}
-
           <div className="grid gap-6 mt-8 lg:grid-cols-2">
             <Card className="lg:col-span-2">
               <CardHeader>
@@ -175,65 +244,87 @@ export default function OrganizationDashboardPage() {
                 <CardDescription>Status and progress of your active campaigns</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-6">
-                  {activeCampaigns.map((campaign) => (
-                    <div key={campaign.id} className="border rounded-lg p-4">
-                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                        <div>
-                          <h3 className="font-medium text-lg">{campaign.title}</h3>
-                          <span className="text-gray-50">{campaign.description}</span>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
-                            <div className="flex items-center">
-                              <Users className="mr-1 h-4 w-4" />
-                              <span>{campaign.donors} donors</span>
-                            </div>
-                            <div className="flex items-center">
-                              <Clock className="mr-1 h-4 w-4" />
-                              <span>{campaign.daysLeft} days left</span>
+                {campaignsLoading ? (
+                  <div className="flex items-center justify-center py-10">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
+                    <p>Loading campaign data...</p>
+                  </div>
+                ) : campaigns.length === 0 ? (
+                  <div className="text-center py-10">
+                    <p className="text-muted-foreground mb-4">You haven't created any campaigns yet.</p>
+                    <Link href="/organizations/campaigns/new">
+                      <Button>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Create Your First Campaign
+                      </Button>
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {campaigns.map((campaign) => (
+                      <div key={campaign.id} className="border rounded-lg p-4">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                          <div>
+                            <h3 className="font-medium text-lg">{campaign.title}</h3>
+                            <p className="text-muted-foreground">{campaign.description}</p>
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                              <div className="flex items-center">
+                                <Users className="mr-1 h-4 w-4" />
+                                <span>{campaign.donors} donors</span>
+                              </div>
+                              <div className="flex items-center">
+                                <Clock className="mr-1 h-4 w-4" />
+                                <span>{campaign.daysLeft} days left</span>
+                              </div>
                             </div>
                           </div>
+                          <div className="flex gap-2">
+                            <Link href={`/organizations/campaigns/${campaign.id}`}>
+                              <Button variant="outline" size="sm">
+                                View Details
+                              </Button>
+                            </Link>
+                            <Link href={`/organizations/campaigns/${campaign.id}/edit`}>
+                              <Button variant="outline" size="sm">
+                                Edit
+                              </Button>
+                            </Link>
+                          </div>
                         </div>
-                        <div className="flex gap-2">
-                          <Link href={`/organizations/campaigns/${campaign.id}`}>
-                            <Button variant="outline" size="sm">
-                              View Details
-                            </Button>
-                          </Link>
-                          <Link href={`/organizations/campaigns/${campaign.id}/edit`}>
-                            <Button variant="outline" size="sm">
-                              Edit
-                            </Button>
-                          </Link>
+                        <div className="mt-4 space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="font-medium">{campaign.raised} ETH raised</span>
+                            <span className="text-muted-foreground">of {campaign.goal} ETH goal</span>
+                          </div>
+                          <Progress 
+                            value={(parseFloat(campaign.raised) / parseFloat(campaign.goal)) * 100} 
+                            className="h-2" 
+                          />
                         </div>
-                      </div>
-                      <div className="mt-4 space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="font-medium">{campaign.raised} ETH raised</span>
-                          <span className="text-muted-foreground">of {campaign.goal} ETH goal</span>
-                        </div>
-                        <Progress value={(campaign.raised / campaign.goal) * 100} className="h-2" />
-                      </div>
-                      <div className="mt-4">
-                        <h4 className="text-sm font-medium mb-2">Milestones</h4>
-                        <div className="grid grid-cols-4 gap-2">
-                          {(campaign as any).milestones && (campaign as any).milestones.map((milestone: any, index: number) => (
-                            <div
-                              key={index}
-                              className={`p-2 rounded-lg text-center text-xs ${
-                                milestone.status === "completed"
-                                  ? "bg-primary/10 text-primary"
-                                  : "bg-muted text-muted-foreground"
-                              }`}
-                            >
-                              <div className="font-medium">{milestone.title}</div>
-                              <div>{milestone.amount} ETH</div>
+                        {campaign.milestones && campaign.milestones.length > 0 && (
+                          <div className="mt-4">
+                            <h4 className="text-sm font-medium mb-2">Milestones</h4>
+                            <div className="grid grid-cols-4 gap-2">
+                              {campaign.milestones.map((milestone, index) => (
+                                <div
+                                  key={index}
+                                  className={`p-2 rounded-lg text-center text-xs ${
+                                    milestone.status === "completed"
+                                      ? "bg-primary/10 text-primary"
+                                      : "bg-muted text-muted-foreground"
+                                  }`}
+                                >
+                                  <div className="font-medium">{milestone.title}</div>
+                                  <div>{milestone.amount} ETH</div>
+                                </div>
+                              ))}
                             </div>
-                          ))}
-                        </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
               <CardFooter>
                 <Link href="/organizations/campaigns" className="w-full">
@@ -243,75 +334,10 @@ export default function OrganizationDashboardPage() {
                 </Link>
               </CardFooter>
             </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Donations</CardTitle>
-                <CardDescription>Latest contributions to your campaigns</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {recentDonations.map((donation, index) => (
-                    <div key={index} className="flex justify-between border-b pb-3 last:border-0 last:pb-0">
-                      <div>
-                        <h3 className="font-medium">{donation.donorName}</h3>
-                        <p className="text-sm text-muted-foreground">{donation.campaignTitle}</p>
-                        <p className="text-xs text-muted-foreground">{donation.date}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-medium">{donation.amount} ETH</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Link href="/organizations/donations" className="w-full">
-                  <Button variant="outline" className="w-full">
-                    View All Donations
-                  </Button>
-                </Link>
-              </CardFooter>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
-                <CardDescription>Common tasks and actions</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-4">
-                  <Link href="/organizations/campaigns/new">
-                    <Button variant="outline" className="w-full h-24 flex flex-col gap-2">
-                      <PlusCircle className="h-6 w-6" />
-                      <span>New Campaign</span>
-                    </Button>
-                  </Link>
-                  <Link href="/organizations/reports">
-                    <Button variant="outline" className="w-full h-24 flex flex-col gap-2">
-                      <BarChart3 className="h-6 w-6" />
-                      <span>Analytics</span>
-                    </Button>
-                  </Link>
-                  <Link href="/organizations/updates/new">
-                    <Button variant="outline" className="w-full h-24 flex flex-col gap-2">
-                      <Bell className="h-6 w-6" />
-                      <span>Post Update</span>
-                    </Button>
-                  </Link>
-                  <Link href="/organizations/documents">
-                    <Button variant="outline" className="w-full h-24 flex flex-col gap-2">
-                      <FileText className="h-6 w-6" />
-                      <span>Documents</span>
-                    </Button>
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </section>
     </div>
-  )
+  );
 }
 

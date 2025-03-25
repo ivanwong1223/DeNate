@@ -128,7 +128,7 @@ export default function RegisterPage() {
         >
           <ArrowLeft className="h-5 w-5" />
         </IconButton>
-      </div>
+          </div>
       <motion.div
         className="max-w-lg w-full bg-white shadow-lg rounded-xl p-8"
         initial="hidden"
@@ -259,16 +259,16 @@ export default function RegisterPage() {
                 className="border-gray-300 checked:bg-blue-500"
               />
               <label htmlFor="agree-terms" className="text-sm text-gray-700">
-                I agree to the{" "}
+                  I agree to the{" "}
                 <Link href="/terms" className="text-blue-500 hover:underline">
-                  terms of service
-                </Link>{" "}
-                and{" "}
+                    terms of service
+                  </Link>{" "}
+                  and{" "}
                 <Link href="/privacy" className="text-blue-500 hover:underline">
-                  privacy policy
-                </Link>
-              </label>
-            </div>
+                    privacy policy
+                  </Link>
+                </label>
+              </div>
 
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
               <Button
@@ -302,7 +302,7 @@ export default function RegisterPage() {
                       />
                     </svg>
                     Registering...
-                  </div>
+              </div>
                 ) : (
                   "Register Organization"
                 )}
@@ -322,9 +322,9 @@ export default function RegisterPage() {
                 </Link>
               </Typography>
             </CardFooter>
-          </div>
+        </div>
         </form>
       </motion.div>
     </div>
   );
-}
+} 
