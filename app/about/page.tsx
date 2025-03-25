@@ -165,7 +165,7 @@ export default function AboutPage() {
               { name: "AidenTheinTV", role: "Co-Founder & CEO", image: "/aiden-notion.png" },
               { name: "John Paulose", role: "Co-Founder & CTO", image: "/john-notion.png" },
               { name: "Ivan Wong", role: "Head of Partnerships", image: "/my-notion-face-transparent.png" },
-              { name: "Roy Teh", role: "Blockchain Lead", image: "/roy-notion.png" },
+              // { name: "Roy Teh", role: "Blockchain Lead", image: "/roy-notion.png" },
             ].map((member, index) => (
               <div key={index} className="flex flex-col items-center space-y-2">
                 <div className="overflow-hidden rounded-full">

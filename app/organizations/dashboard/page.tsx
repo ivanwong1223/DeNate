@@ -273,16 +273,13 @@ export default function OrganizationDashboardPage() {
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <Link href={`/organizations/campaigns/${campaign.id}`}>
-                              <Button variant="outline" size="sm">
-                                View Details
-                              </Button>
-                            </Link>
-                            <Link href={`/organizations/campaigns/${campaign.id}/edit`}>
-                              <Button variant="outline" size="sm">
-                                Edit
-                              </Button>
-                            </Link>
+                            <Button variant="outline" size="sm">
+                              View Details
+                            </Button>
+                            
+                            <Button variant="outline" size="sm">
+                              Edit
+                            </Button>
                           </div>
                         </div>
                         <div className="mt-4 space-y-2">
