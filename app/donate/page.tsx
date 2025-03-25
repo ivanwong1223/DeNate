@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link"
 // This is donate page
 import Image from "next/image"
@@ -7,12 +9,100 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Heart, Clock, Users } from "lucide-react"
 import { getActiveCampaigns } from "@/lib/mockData"
-import { charityCentral_CA } from "@/config/contractABI"
+import { useEffect, useState } from "react"
+import { ethers } from "ethers"
+import { charityCentral_ABI, charityCentral_CA, charityCampaigns_ABI } from "@/config/contractABI"
 
 // Get campaigns data from mockData
 const campaigns = getActiveCampaigns()
 
 export default function DonatePage() {
+  const [campaignDetails, setCampaignDetails] = useState<any[]>([])
+
+  const contractAddress = charityCentral_CA;
+  const contractABI = charityCentral_ABI;
+  const charityCampaignABI = [
+    {
+      inputs: [],
+      name: 'getCampaignDetails',
+      outputs: [
+        { internalType: 'string', name: 'name', type: 'string' },
+        { internalType: 'string', name: 'description', type: 'string' },
+        { internalType: 'uint256', name: 'goal', type: 'uint256' },
+        { internalType: 'uint256', name: 'totalDonated', type: 'uint256' },
+        { internalType: 'uint8', name: 'state', type: 'uint8' },
+        { internalType: 'address', name: 'charityAddress', type: 'address' }
+      ],
+      stateMutability: 'view',
+      type: 'function',
+    },
+  ];
+
+  useEffect(() => {
+    const fetchCampaignsDetails = async () => {
+      if (typeof window.ethereum === "undefined") {
+        console.error("MetaMask not detected. Please install a wallet.");
+        return;
+      }
+
+      try {
+        // Create provider
+        const provider = new ethers.BrowserProvider(window.ethereum);
+
+        // Request wallet connection
+        await window.ethereum.request({ method: "eth_requestAccounts" });
+
+        // Get signer
+        const signer = await provider.getSigner();
+
+        // Instantiate charity central contract
+        const centralContract = new ethers.Contract(
+          contractAddress,
+          contractABI,
+          signer
+        );
+
+        // Fetch campaign addresses
+        const campaignAddresses = await centralContract.getAllCampaigns();
+
+        // Fetch details for each campaign
+        const detailedCampaigns = await Promise.all(
+          campaignAddresses.map(async (address: string) => {
+            // Create contract instance for each campaign
+            const campaignContract = new ethers.Contract(
+              address,
+              charityCampaignABI,
+              signer
+            );
+
+            // Fetch campaign details
+            const details = await campaignContract.getCampaignDetails();
+
+            // Return details with the campaign address
+            return {
+              address,
+              name: details[0],
+              description: details[1],
+              goal: ethers.formatUnits(details[2], 18), // Assuming ETH has 18 decimals
+              totalDonated: ethers.formatUnits(details[3], 18),
+              state: details[4],
+              charityAddress: details[5]
+            };
+          })
+        );
+
+        // Update state with detailed campaigns
+        setCampaignDetails(detailedCampaigns);
+        console.log("Detailed Campaigns:", detailedCampaigns);
+
+      } catch (error) {
+        console.error("Error fetching campaign details:", error);
+      }
+    };
+
+    fetchCampaignsDetails();
+  }, []);
+  
   // Check if the contract address is been fetched
   console.log("Charity Central Contract Address:", charityCentral_CA);
 
