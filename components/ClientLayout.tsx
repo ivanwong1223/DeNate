@@ -9,7 +9,7 @@ import { SiteFooter } from "@/components/site-footer";
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const isCustomNav = pathname.includes("/donors") || pathname.includes("/organizations");
-    const hideNavAndFooter = pathname === "/register";
+    const hideNavAndFooter = pathname === "/register" || pathname === "/login" || pathname === "/create-profile";
 
     return (
         <div className="relative flex min-h-screen flex-col">
