@@ -176,15 +176,43 @@ export default function DonorDashboardPage() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <section className="w-full py-12 md:py-24 lg:py-32 bg-muted/50">
-        <div className="container px-4 md:px-6">
-          <div className="grid gap-6 lg:grid-cols-[1fr_300px] lg:gap-12">
-            <div className="space-y-2">
-              <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Welcome, {orgData?.name}</h1>
-              <p className="text-muted-foreground">
-                Track your donations, impact, and discover new opportunities to make a difference.
-              </p>
+      <section
+        className="w-full py-12 md:py-24 lg:py-32 bg-muted/50 relative bg-[url('/donors.png')] bg-cover bg-center"
+      >
+        {/* Overlay for readability */}
+        <div className="absolute inset-0 bg-black/50"></div>
+
+        <div className="container px-4 md:px-6 relative z-10">
+          <div className="grid gap-6 lg:grid-cols-[1fr_300px] lg:gap-12 items-center">
+            {/* Avatar + Welcome Text */}
+            <div className="flex items-center space-x-4">
+              {/* Avatar */}
+              <div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden bg-gray-200 border-2 border-white">
+                {orgData?.avatar ? (
+                  <img
+                    src={orgData.avatar}
+                    alt="Organization Avatar"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-white bg-gray-500">
+                    <span className="text-lg">?</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Welcome Text */}
+              <div className="space-y-2">
+                <h1 className="text-3xl font-bold tracking-tighter text-white sm:text-4xl md:text-5xl">
+                  Welcome, {orgData?.name}
+                </h1>
+                <p className="text-white text-opacity-90">
+                  Track your donations, impact, and discover new opportunities to make a difference.
+                </p>
+              </div>
             </div>
+
+            {/* Actions */}
             <div className="flex items-center justify-end gap-4">
               <Link href="/donate">
                 <Button>
