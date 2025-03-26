@@ -28,9 +28,23 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/denate-single-logo.png"></link>
+        {/* Script to prevent flash of light mode */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                const storedTheme = localStorage.getItem('theme');
+                if (storedTheme === 'dark' || (storedTheme === null && prefersDark)) {
+                  document.documentElement.classList.add('dark');
+                }
+              })()
+            `,
+          }}
+        />
       </head>
       <body className={roboto.className}>
         <Web3Provider>
