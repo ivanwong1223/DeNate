@@ -38,7 +38,7 @@ export default function AboutPage() {
             <div className="space-y-2">
               <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">Our Story</h2>
               <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                DeNate was founded in 2022 by a group of blockchain enthusiasts and philanthropy advocates who
+                DeNate was founded in 2025 by a group of blockchain enthusiasts and philanthropy advocates who
                 recognized the potential of blockchain technology to revolutionize charitable giving.
               </p>
             </div>
