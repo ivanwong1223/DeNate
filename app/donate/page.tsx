@@ -13,6 +13,7 @@ import { charityCentral_ABI, charityCentral_CA } from "@/config/contractABI"
 
 export default function DonatePage() {
   const [campaignDetails, setCampaignDetails] = useState<any[]>([])
+  const [organizations, setOrganizations] = useState<any[]>([]);
 
   const contractAddress = charityCentral_CA;
   const contractABI = charityCentral_ABI;
@@ -32,6 +33,26 @@ export default function DonatePage() {
       type: 'function',
     },
   ];
+
+  // Fetch all organizations
+  useEffect(() => {
+    const fetchOrganizations = async () => {
+      try {
+        const response = await fetch("/api/organizations/getAllOrganizations"); // Assuming the endpoint is /api/organizations
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to fetch organizations");
+        }
+
+        setOrganizations(data);
+      } catch (err) {
+        console.error("Error fetching organizations:", err);
+      }
+    };
+
+    fetchOrganizations();
+  }, []);
 
   useEffect(() => {
     const fetchCampaignsDetails = async () => {
@@ -66,8 +87,11 @@ export default function DonatePage() {
           })
         );
 
-        setCampaignDetails(detailedCampaigns);
-        console.log("Detailed Campaigns:", detailedCampaigns);
+        // Filter only campaigns where state === 0 (convert BigInt to Number)
+        const activeCampaigns = detailedCampaigns.filter((campaign) => Number(campaign.state) === 0);
+
+        setCampaignDetails(activeCampaigns);
+        console.log("Detailed Campaigns:", activeCampaigns);
 
       } catch (error) {
         console.error("Error fetching campaign details:", error);
@@ -78,6 +102,12 @@ export default function DonatePage() {
   }, []);
 
   console.log("Charity Central Contract Address:", charityCentral_CA);
+  // Function to get organization name by wallet address
+  const getOrgNameByAddress = (walletAddress: string) => {
+    if (!walletAddress || !organizations.length) return "Unknown Organization"; // Early return if no address or organizations
+    const org = organizations.find((o) => o?.walletAddress?.toLowerCase() === walletAddress.toLowerCase());
+    return org?.name || walletAddress; // Return name if found, otherwise fallback to address
+  };
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -123,6 +153,7 @@ export default function DonatePage() {
                 </div>
                 <CardHeader>
                   <CardTitle>{campaign.name}</CardTitle>
+                  <CardDescription>{getOrgNameByAddress(campaign.charityAddress)}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-sm text-muted-foreground">{campaign.description}</p>
@@ -134,11 +165,7 @@ export default function DonatePage() {
                     <Progress value={(parseFloat(campaign.totalDonated) / parseFloat(campaign.goal)) * 100} className="h-2" />
                   </div>
                   <div className="flex justify-between text-sm text-muted-foreground">
-                    <div className="flex items-center">
-                      <Users className="mr-1 h-4 w-4" />
-                      <span>{campaign.donors} donors</span>
-                    </div>
-                    <div className="flex items-center">
+                    <div className="flex items-center ml-auto">
                       <Clock className="mr-1 h-4 w-4" />
                       <span>{campaign.daysLeft} days left</span>
                     </div>

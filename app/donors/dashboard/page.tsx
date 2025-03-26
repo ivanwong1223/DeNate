@@ -21,6 +21,7 @@ export default function DonorDashboardPage() {
   const { address, isConnected } = useAccount();
   const [campaignDetails, setCampaignDetails] = useState<any[]>([])
   const [orgData, setOrgData] = useState<Partial<Donor> | null>(null);
+  const [organizations, setOrganizations] = useState<any[]>([]);
 
   const contractAddress = charityCentral_CA;
   const contractABI = charityCentral_ABI;
@@ -42,27 +43,47 @@ export default function DonorDashboardPage() {
   ];
 
   useEffect(() => {
-      
-      // Fetch organization data by wallet address
-      const fetchOrgData = async () => {
-        try {
-          const response = await fetch(`/api/donors/getByWallet?walletAddress=${address}`);
-          const data = await response.json();
-          
-          if (!response.ok) {
-            throw new Error(data.error || "Failed to fetch organization data");
-          }
-          
-          setOrgData(data);
-        } catch (err) {
-          console.error("Error fetching organization data:", err);
-        } finally {
-          // setLoading(false);
+
+    // Fetch organization data by wallet address
+    const fetchOrgData = async () => {
+      try {
+        const response = await fetch(`/api/donors/getByWallet?walletAddress=${address}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to fetch organization data");
         }
-      };
-      
-      fetchOrgData();
-    }, [address, isConnected]);
+
+        setOrgData(data);
+      } catch (err) {
+        console.error("Error fetching organization data:", err);
+      } finally {
+        // setLoading(false);
+      }
+    };
+
+    fetchOrgData();
+  }, [address, isConnected]);
+
+  // Fetch all organizations
+  useEffect(() => {
+    const fetchOrganizations = async () => {
+      try {
+        const response = await fetch("/api/organizations/getAllOrganizations"); // Assuming the endpoint is /api/organizations
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to fetch organizations");
+        }
+
+        setOrganizations(data);
+      } catch (err) {
+        console.error("Error fetching organizations:", err);
+      }
+    };
+
+    fetchOrganizations();
+  }, []);
 
   useEffect(() => {
     const fetchCampaignsDetails = async () => {
@@ -117,8 +138,11 @@ export default function DonorDashboardPage() {
           })
         );
 
+        // Filter only campaigns where state === 0 (convert BigInt to Number)
+        const activeCampaigns = detailedCampaigns.filter((campaign) => Number(campaign.state) === 0);
+
         // Update state with detailed campaigns
-        setCampaignDetails(detailedCampaigns);
+        setCampaignDetails(activeCampaigns);
         console.log("Detailed Campaigns:", detailedCampaigns);
 
       } catch (error) {
@@ -142,6 +166,13 @@ export default function DonorDashboardPage() {
   }
 
   const { donor, recentDonations, activeCampaigns, impactMetrics } = donorData
+
+  // Function to get organization name by wallet address
+  const getOrgNameByAddress = (walletAddress: string) => {
+    if (!walletAddress || !organizations.length) return "Unknown Organization"; // Early return if no address or organizations
+    const org = organizations.find((o) => o?.walletAddress?.toLowerCase() === walletAddress.toLowerCase());
+    return org?.name || walletAddress; // Return name if found, otherwise fallback to address
+  };
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -246,7 +277,9 @@ export default function DonorDashboardPage() {
                       <div className="flex justify-between">
                         <div>
                           <h3 className="font-medium">{campaign.name}</h3>
-                          <p className="text-sm text-muted-foreground">{campaign.charityAddress}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {getOrgNameByAddress(campaign.charityAddress)} {/* Display org name instead of address */}
+                          </p>
                         </div>
                         <div className="text-right">
                           <p className="font-medium">{campaign.totalDonated} ETH</p>

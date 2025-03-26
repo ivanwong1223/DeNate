@@ -22,6 +22,7 @@ export default function CampaignDetailPage({ params }: { params: { address: stri
   const [donorsData, setDonorsData] = useState<any[]>([]); // Store donor info
   const [isDonating, setIsDonating] = useState(false);
   const [donationError, setDonationError] = useState<string | null>(null);
+  const [organizations, setOrganizations] = useState<any[]>([]);
 
   const router = useRouter();
   const { isConnected } = useAccount();
@@ -121,14 +122,46 @@ export default function CampaignDetailPage({ params }: { params: { address: stri
       console.log("Milestones:", formattedMilestones);
 
       // Fetch donors
+      const fetchDonorNames = async (addresses: string[]) => {
+        try {
+          const response = await fetch("/api/campaign/get-recent-donors");
+          if (!response.ok) throw new Error("Failed to fetch donor names");
+          const donors = await response.json();
+
+          const addressToNameMap = donors.reduce((map: Record<string, string>, donor: any) => {
+            map[donor.walletAddress.toLowerCase()] = donor.name || "Anonymous";
+            return map;
+          }, {});
+
+          return addresses.map((address) => ({
+            address,
+            name: addressToNameMap[address.toLowerCase()] || "Anonymous",
+          }));
+        } catch (error) {
+          console.error("Error fetching donor names:", error);
+          return addresses.map((address) => ({
+            address,
+            name: "Anonymous",
+          }));
+        }
+      };
+
+      // Fetch donors
       const donorAddresses = await campaignContract.getAllDonors();
       console.log("Donor Addresses:", donorAddresses);
+
+      // Fetch donor names
+      const donorNames = await fetchDonorNames(donorAddresses);
+      console.log("Donor Names:", donorNames);
 
       const donorsInfo = await Promise.all(
         donorAddresses.map(async (donorAddress: string) => {
           const donorData = await campaignContract.donors(donorAddress);
+          const donorName = donorNames.find((d) => d.address === donorAddress)?.name || "Anonymous";
+
           return {
             donorAddress,
+            donorName,
             totalDonated: ethers.formatUnits(donorData.totalDonated, 18),
             isTopDonor: donorData.isTopDonor,
             date: new Date().toLocaleDateString(), // Placeholder, no timestamp in contract
@@ -151,6 +184,26 @@ export default function CampaignDetailPage({ params }: { params: { address: stri
   useEffect(() => {
     fetchCampaignData();
   }, [address]);
+
+  // Fetch all organizations
+  useEffect(() => {
+    const fetchOrganizations = async () => {
+      try {
+        const response = await fetch("/api/organizations/getAllOrganizations"); // Assuming the endpoint is /api/organizations
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to fetch organizations");
+        }
+
+        setOrganizations(data);
+      } catch (err) {
+        console.error("Error fetching organizations:", err);
+      }
+    };
+
+    fetchOrganizations();
+  }, []);
 
   // Handle donation
   const handleDonate = async () => {
@@ -186,10 +239,23 @@ export default function CampaignDetailPage({ params }: { params: { address: stri
       alert("Donation successful! Thank you for your contribution.");
     } catch (error: any) {
       console.error("Error donating:", error);
-      setDonationError(error.message || "Failed to process donation. Please try again.");
+
+      if (error.code === "ACTION_REJECTED" || error.code === 4001) {
+        // User rejected the transaction
+        setDonationError("Transaction cancelled. No funds were sent.");
+      } else {
+        setDonationError(error.message || "Failed to process donation. Please try again.");
+      }
     } finally {
       setIsDonating(false);
     }
+  };
+
+  // Function to get organization name by wallet address
+  const getOrgNameByAddress = (walletAddress: string) => {
+    if (!walletAddress || !organizations.length) return "Unknown Organization"; // Early return if no address or organizations
+    const org = organizations.find((o) => o?.walletAddress?.toLowerCase() === walletAddress.toLowerCase());
+    return org?.name || walletAddress; // Return name if found, otherwise fallback to address
   };
 
   return (
@@ -208,6 +274,9 @@ export default function CampaignDetailPage({ params }: { params: { address: stri
             </div>
             <div className="flex flex-col space-y-4">
               <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">{campaignDetails.name}</h1>
+              <p className="text-sm text-muted-foreground">
+                {getOrgNameByAddress(campaignDetails.charityAddress)} {/* Display org name instead of address */}
+              </p>
               <p className="text-muted-foreground">{campaignDetails.description}</p>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
@@ -398,7 +467,7 @@ export default function CampaignDetailPage({ params }: { params: { address: stri
                   <div className="divide-y">
                     {donorsData.slice(0, 5).map((donor, index) => ( // Show top 5 recent donors
                       <div key={index} className="p-4 grid grid-cols-3">
-                        <div>{`${donor.donorAddress.slice(0, 6)}...${donor.donorAddress.slice(-4)}`}</div>
+                        <div>{donor.donorName}</div>
                         <div className="text-center">{donor.totalDonated} ETH</div>
                         <div className="text-right">{donor.date}</div>
                       </div>
