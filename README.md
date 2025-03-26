@@ -24,7 +24,7 @@ DeNate is a cutting-edge **blockchain-based** platform that revolutionizes **don
 - **Form Handling**: React Hook Form with Zod validation
 - **Blockchain Integration**: Ethereum (Solidity Smart Contracts)
 - **Smart Contract Deployment**: **Scroll L2** for faster and cheaper transactions (Layer 2 scaling solution)
-- **Database**: **MongoDB** for storing user and campaign data, ensuring fast and scalable data storage.
+- **Database**: **MongoDB** for storing user and organisation data, ensuring fast and scalable data storage.
 - **Blockchain Data Indexing**: **The Graph** for efficient querying of blockchain data, such as donor information and leaderboards.
 - **Automation**: **Chainlink** for automating smart contract functions, like milestone tracking and fund release, ensuring secure and reliable operations.
 
