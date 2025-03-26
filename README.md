@@ -1,4 +1,4 @@
-# 🚀 **DeNate - The Blockchain-Powered Charity Donation Platform**
+# 💖 **DeNate - The Blockchain-Powered Charity Donation Platform** (DEcentralized doNATE)
 
 Welcome to **DeNate**, the future of charitable giving! 💡  
 DeNate is a cutting-edge **blockchain-based** platform that revolutionizes **donation tracking** with **smart contracts** to bring **trust**, **transparency**, and **efficiency** to the charitable sector. Whether you're a **donor** or a **charity organization**, DeNate makes it easier, faster, and more secure to contribute to meaningful causes.
