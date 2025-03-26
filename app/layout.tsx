@@ -34,7 +34,7 @@ export default function RootLayout({
       </head>
       <body className={roboto.className}>
         <Web3Provider>
-          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <ThemeProvider attribute="class" defaultTheme="dark" enableSystem storageKey="denate-theme">
             <ClientLayout>{children}</ClientLayout>
           </ThemeProvider>
         </Web3Provider>
