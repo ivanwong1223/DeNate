@@ -4,14 +4,14 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, PlusCircle, Settings, Users, Clock } from "lucide-react";
+import { Loader2, PlusCircle, Users, Clock, ChevronRight, BarChart3, Award } from "lucide-react";
 import { Organization } from "@/lib/types";
 import Link from "next/link";
 import { Progress } from "@/components/ui/progress";
-import { getOrganizationDashboardData } from "@/lib/mockData";
 import { useAccount } from "wagmi";
 import { charityCentral_CA, charityCentral_ABI, charityCampaigns_ABI } from "@/config/contractABI";
 import { ethers } from "ethers";
+import Image from "next/image";
 
 // Campaign interface based on the contract structure
 interface Campaign {
@@ -23,6 +23,7 @@ interface Campaign {
   raised: string;
   daysLeft: number;
   donors: number;
+  state?: number;
   milestones?: {
     title: string;
     amount: string;
@@ -171,9 +172,9 @@ export default function OrganizationDashboardPage() {
   // Show loading state
   if (loading) {
     return (
-      <div className="flex flex-col min-h-screen items-center justify-center">
+      <div className="flex flex-col min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-        <h1 className="text-2xl font-bold">Loading organization data...</h1>
+        <h1 className="text-2xl font-bold text-foreground">Loading organization data...</h1>
       </div>
     );
   }
@@ -181,45 +182,86 @@ export default function OrganizationDashboardPage() {
   // Show error state
   if (error || !orgData) {
     return (
-      <div className="flex flex-col min-h-screen items-center justify-center">
-        <h1 className="text-2xl font-bold text-red-500">Error</h1>
-        <p className="text-muted-foreground">{error || "Failed to load organization data"}</p>
-        {!isConnected && (
-          <div className="mt-4 text-center">
-            <p className="mb-2">Please connect your wallet first</p>
-            <Button onClick={() => window.location.href = "/"}>
-              Return to Home
-            </Button>
+      <div className="flex flex-col min-h-screen items-center justify-center bg-background">
+        <div className="max-w-md p-8 text-center">
+          <div className="w-20 h-20 mx-auto mb-6 flex items-center justify-center rounded-full bg-red-950/20">
+            <span className="text-red-500 text-3xl">!</span>
           </div>
-        )}
-        {isConnected && !orgData && (
-          <Button className="mt-4" onClick={() => window.location.href = "/register"}>
-            Register Your Organization
-          </Button>
-        )}
+          <h1 className="text-2xl font-bold text-red-500 mb-2">Error</h1>
+          <p className="text-muted-foreground mb-6">{error || "Failed to load organization data"}</p>
+          {!isConnected && (
+            <div className="mt-4 text-center">
+              <p className="mb-4 text-muted-foreground">Please connect your wallet first</p>
+              <Button className="bg-primary hover:bg-primary/90" onClick={() => window.location.href = "/"}>
+                Return to Home
+              </Button>
+            </div>
+          )}
+          {isConnected && !orgData && (
+            <Button className="bg-primary hover:bg-primary/90 mt-4" onClick={() => window.location.href = "/register"}>
+              Register Your Organization
+            </Button>
+          )}
+        </div>
       </div>
     );
   }
 
+  // Calculate the total funding raised across all campaigns
+  const totalRaised = campaigns.reduce((sum, campaign) => sum + parseFloat(campaign.raised), 0).toFixed(8);
+  // Calculate the total goal amount across all campaigns
+  const totalGoal = campaigns.reduce((sum, campaign) => sum + parseFloat(campaign.goal), 0).toFixed(8);
+  // Calculate the total donor count
+  const totalDonors = campaigns.reduce((sum, campaign) => sum + campaign.donors, 0);
+
+  // Format ETH amount with more decimal places
+  const formatEthAmount = (amount: string) => {
+    // Parse the amount to ensure we're working with a number
+    const value = parseFloat(amount);
+    // Format to 8 decimal places
+    return value.toFixed(8);
+  };
+
   return (
-    <div className="flex flex-col min-h-screen">
-      <section className="w-full py-12 md:py-24 lg:py-32 bg-muted/50">
-        <div className="container px-4 md:px-6">
-          <div className="grid gap-6 lg:grid-cols-[1fr_300px] lg:gap-12">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
+    <div className="flex flex-col min-h-screen bg-background">
+      {/* Banner section with background image */}
+      <section 
+        className="relative w-full py-16 md:py-24 text-white overflow-hidden"
+        style={{
+          backgroundImage: "url('/charity.png')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      >
+        {/* Overlay to ensure text readability */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/80 to-slate-900/70"></div>
+
+        <div className="container relative px-4 md:px-6 z-10 mx-auto">
+          <div className="grid gap-8 lg:grid-cols-[1fr_300px]">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl drop-shadow-md">
                   {orgData.name}
                 </h1>
-                {orgData.verified && <Badge className="ml-2">Verified</Badge>}
+                {orgData.verified && (
+                  <Badge className="bg-emerald-500/80 text-white border-none">
+                    <Award className="w-3 h-3 mr-1" /> Verified
+                  </Badge>
+                )}
               </div>
-              <p className="text-muted-foreground">
+              <p className="text-xl text-slate-200 max-w-2xl drop-shadow-md">
                 {orgData.description || "No description available."}
               </p>
+              <div className="flex items-center gap-2 text-sm text-slate-300">
+                <span className="font-medium">Wallet:</span>
+                <span className="font-mono bg-white/10 px-3 py-1 rounded-full">
+                  {address?.slice(0, 6)}...{address?.slice(-4)}
+                </span>
+              </div>
             </div>
-            <div className="flex items-center justify-end gap-4">
+            <div className="flex flex-col md:flex-row lg:flex-col items-center md:items-end gap-4 lg:justify-center">
               <Link href="/organizations/campaigns/new">
-                <Button>
+                <Button className="w-full bg-primary hover:bg-primary/90 shadow-lg transition-all">
                   <PlusCircle className="mr-2 h-4 w-4" />
                   New Campaign
                 </Button>
@@ -229,103 +271,166 @@ export default function OrganizationDashboardPage() {
         </div>
       </section>
 
-      <section className="w-full py-12 md:py-24 lg:py-32">
-        <div className="container px-4 md:px-6">
-          <div className="grid gap-6 mt-8 lg:grid-cols-2">
-            <Card className="lg:col-span-2">
-              <CardHeader>
-                <CardTitle>Campaign Overview</CardTitle>
-                <CardDescription>Status and progress of your active campaigns</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {campaignsLoading ? (
-                  <div className="flex items-center justify-center py-10">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
-                    <p>Loading campaign data...</p>
+      {/* Stats section */}
+      <section className="w-full py-8 -mt-10">
+        <div className="container px-4 md:px-6 mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="shadow-lg border-none bg-card/60 backdrop-blur-sm">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <BarChart3 className="h-6 w-6 text-primary" />
                   </div>
-                ) : campaigns.length === 0 ? (
-                  <div className="text-center py-10">
-                    <p className="text-muted-foreground mb-4">You haven't created any campaigns yet.</p>
-                    <Link href="/organizations/campaigns/new">
-                      <Button>
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Create Your First Campaign
-                      </Button>
-                    </Link>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Total Raised</p>
+                    <h3 className="text-2xl font-bold text-foreground">{totalRaised} ETH</h3>
+                    <p className="text-xs text-muted-foreground">of {totalGoal} ETH goal</p>
                   </div>
-                ) : (
-                  <div className="space-y-6">
-                    {campaigns.map((campaign) => (
-                      <div key={campaign.id} className="border rounded-lg p-4">
-                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                          <div>
-                            <h3 className="font-medium text-lg">{campaign.title}</h3>
-                            <p className="text-muted-foreground">{campaign.description}</p>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
-                              <div className="flex items-center">
-                                <Users className="mr-1 h-4 w-4" />
-                                <span>{campaign.donors} donors</span>
-                              </div>
-                              {/* <div className="flex items-center">
-                                <Clock className="mr-1 h-4 w-4" />
-                                <span>{campaign.daysLeft} days left</span>
-                              </div> */}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-lg border-none bg-card/60 backdrop-blur-sm">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                    <Users className="h-6 w-6 text-emerald-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Total Donors</p>
+                    <h3 className="text-2xl font-bold text-foreground">{totalDonors}</h3>
+                    <p className="text-xs text-muted-foreground">across {campaigns.length} campaigns</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-lg border-none bg-card/60 backdrop-blur-sm">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-full bg-purple-500/10 flex items-center justify-center">
+                    <PlusCircle className="h-6 w-6 text-purple-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Active Campaigns</p>
+                    <h3 className="text-2xl font-bold text-foreground">{campaigns.length}</h3>
+                    <p className="text-xs text-muted-foreground">making an impact</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Campaigns section */}
+      <section className="w-full py-10">
+        <div className="container px-4 md:px-6 mx-auto">
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-foreground">Your Campaigns</h2>
+            <p className="text-muted-foreground">Manage and track the progress of your fundraising efforts</p>
+          </div>
+          
+          <Card className="border-0 shadow-lg bg-card/60 backdrop-blur-sm overflow-hidden">
+            <CardHeader className="bg-card/50 border-b border-border">
+              <CardTitle>Campaign Overview</CardTitle>
+              <CardDescription>Status and progress of your active campaigns</CardDescription>
+            </CardHeader>
+            <CardContent className="p-6">
+              {campaignsLoading ? (
+                <div className="flex items-center justify-center py-20">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
+                  <p className="text-muted-foreground">Loading campaign data...</p>
+                </div>
+              ) : campaigns.length === 0 ? (
+                <div className="text-center py-20 bg-card/30 rounded-lg">
+                  <div className="w-16 h-16 bg-primary/10 rounded-full mx-auto mb-4 flex items-center justify-center">
+                    <PlusCircle className="h-8 w-8 text-primary" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-foreground mb-2">No campaigns yet</h3>
+                  <p className="text-muted-foreground mb-6 max-w-md mx-auto">You haven't created any campaigns yet. Start making a difference by creating your first campaign.</p>
+                  <Link href="/organizations/campaigns/new">
+                    <Button className="bg-primary hover:bg-primary/90">
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      Create Your First Campaign
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {campaigns.map((campaign) => (
+                    <div key={campaign.id} className="border border-border rounded-lg p-6 hover:bg-card/80 transition-colors">
+                      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-xl text-foreground">{campaign.title}</h3>
+                          <p className="text-muted-foreground mt-1 line-clamp-2">{campaign.description}</p>
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
+                            <div className="flex items-center">
+                              <Users className="mr-1 h-4 w-4" />
+                              <span>{campaign.donors} donors</span>
+                            </div>
+                            <div className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
+                              {campaign.state === 0 ? "Active" : campaign.state === 1 ? "Completed" : "Inactive"}
                             </div>
                           </div>
-                          <div className="flex gap-2">
+                        </div>
+                        <div className="flex gap-3">
+                          <Link href={`/organizations/campaigns/${campaign.id}`}>
                             <Button variant="outline" size="sm">
                               View Details
                             </Button>
-                            
+                          </Link>
+                          <Link href={`/organizations/campaigns/${campaign.id}/edit`}>
                             <Button variant="outline" size="sm">
                               Edit
                             </Button>
-                          </div>
+                          </Link>
                         </div>
-                        <div className="mt-4 space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span className="font-medium">{campaign.raised} ETH raised</span>
-                            <span className="text-muted-foreground">of {campaign.goal} ETH goal</span>
-                          </div>
-                          <Progress 
-                            value={(parseFloat(campaign.raised) / parseFloat(campaign.goal)) * 100} 
-                            className="h-2" 
-                          />
-                        </div>
-                        {campaign.milestones && campaign.milestones.length > 0 && (
-                          <div className="mt-4">
-                            <h4 className="text-sm font-medium mb-2">Milestones</h4>
-                            <div className="grid grid-cols-4 gap-2">
-                              {campaign.milestones.map((milestone, index) => (
-                                <div
-                                  key={index}
-                                  className={`p-2 rounded-lg text-center text-xs ${
-                                    milestone.status === "completed"
-                                      ? "bg-primary/10 text-primary"
-                                      : "bg-muted text-muted-foreground"
-                                  }`}
-                                >
-                                  <div className="font-medium">{milestone.title}</div>
-                                  <div>{milestone.amount} ETH</div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
                       </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-              <CardFooter>
-                <Link href="/organizations/campaigns" className="w-full">
-                  <Button variant="outline" className="w-full">
-                    Manage All Campaigns
-                  </Button>
-                </Link>
-              </CardFooter>
-            </Card>
-          </div>
+                      <div className="mt-4 space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="font-medium text-foreground">{formatEthAmount(campaign.raised)} ETH raised</span>
+                          <span className="text-muted-foreground">of {formatEthAmount(campaign.goal)} ETH goal</span>
+                        </div>
+                        <Progress 
+                          value={(parseFloat(campaign.raised) / parseFloat(campaign.goal)) * 100} 
+                          className="h-2" 
+                        />
+                      </div>
+                      {campaign.milestones && campaign.milestones.length > 0 && (
+                        <div className="mt-6">
+                          <h4 className="text-sm font-medium text-foreground mb-3">Milestones</h4>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            {campaign.milestones.map((milestone, index) => (
+                              <div
+                                key={index}
+                                className={`p-3 rounded-lg text-center ${
+                                  milestone.status === "completed"
+                                    ? "bg-emerald-950/20 text-emerald-400 border border-emerald-800/50"
+                                    : "bg-card/50 text-muted-foreground border border-border"
+                                }`}
+                              >
+                                <div className="font-medium text-xs mb-1">{milestone.title}</div>
+                                <div className="text-sm">{formatEthAmount(milestone.amount)} ETH</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+            <CardFooter className="bg-card/50 border-t border-border p-4">
+              <Link href="/organizations/campaigns" className="w-full">
+                <Button variant="outline" className="w-full">
+                  Manage All Campaigns
+                  <ChevronRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+            </CardFooter>
+          </Card>
         </div>
       </section>
     </div>
