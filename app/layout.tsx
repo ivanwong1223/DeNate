@@ -29,6 +29,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <link rel="icon" href="/denate-single-logo.png"></link>
+      </head>
       <body className={roboto.className}>
         <Web3Provider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
@@ -37,7 +40,7 @@ export default function RootLayout({
         </Web3Provider>
       </body>
     </html>
-  )
+  );
 }
 
 
