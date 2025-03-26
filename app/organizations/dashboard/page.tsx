@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, PlusCircle, Users, Clock, ChevronRight, BarChart3, Award } from "lucide-react";
+import { Loader2, PlusCircle, Users, Clock, ChevronRight, BarChart3, Award, X } from "lucide-react";
 import { Organization } from "@/lib/types";
 import Link from "next/link";
 import { Progress } from "@/components/ui/progress";
@@ -12,6 +12,10 @@ import { useAccount } from "wagmi";
 import { charityCentral_CA, charityCentral_ABI, charityCampaigns_ABI } from "@/config/contractABI";
 import { ethers } from "ethers";
 import Image from "next/image";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 // Campaign interface based on the contract structure
 interface Campaign {
@@ -38,6 +42,86 @@ export default function OrganizationDashboardPage() {
   const [error, setError] = useState("");
   const [orgData, setOrgData] = useState<Partial<Organization> | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [createCampaignLoading, setCreateCampaignLoading] = useState(false);
+  const [createCampaignError, setCreateCampaignError] = useState("");
+  const [campaignFormData, setCampaignFormData] = useState({
+    name: "",
+    description: "",
+    goal: ""
+  });
+
+  // Handle campaign form input change
+  const handleCampaignInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setCampaignFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Reset form when dialog closes
+  const resetCampaignForm = () => {
+    setCampaignFormData({
+      name: "",
+      description: "",
+      goal: ""
+    });
+    setCreateCampaignError("");
+    setCreateCampaignLoading(false);
+  };
+
+  // Handle campaign creation
+  const handleCreateCampaign = () => {
+    if (!isConnected || !address) {
+      setCreateCampaignError("Please connect your wallet first");
+      return;
+    }
+
+    setCreateCampaignLoading(true);
+    setCreateCampaignError("");
+
+    // Connect to provider and contract
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    
+    provider.getSigner().then(signer => {
+      const contract = new ethers.Contract(
+        charityCentral_CA,
+        charityCentral_ABI,
+        signer
+      );
+
+      // Convert goal to wei
+      const goalInWei = ethers.parseEther(campaignFormData.goal);
+
+      // Call createCampaign function
+      contract.createCampaign(
+        campaignFormData.name,
+        campaignFormData.description,
+        goalInWei
+      ).then(transaction => {
+        console.log("Transaction sent:", transaction);
+        return transaction.wait();
+      }).then(receipt => {
+        console.log("Transaction confirmed:", receipt);
+        setDialogOpen(false);
+        resetCampaignForm();
+        
+        // Refresh campaign data
+        if (address && isConnected && orgData) {
+          fetchCampaignData(address);
+        }
+      }).catch(err => {
+        console.error("Error creating campaign:", err);
+        setCreateCampaignError(err.message || "Failed to create campaign");
+        setCreateCampaignLoading(false);
+      });
+    }).catch(err => {
+      console.error("Error getting signer:", err);
+      setCreateCampaignError(err.message || "Failed to connect to wallet");
+      setCreateCampaignLoading(false);
+    });
+  };
 
   // Get org data from database
   useEffect(() => {
@@ -47,17 +131,17 @@ export default function OrganizationDashboardPage() {
       setLoading(false);
       return;
     }
-    
+
     // Fetch organization data by wallet address
     const fetchOrgData = async () => {
       try {
         const response = await fetch(`/api/organizations/getByWallet?walletAddress=${address}`);
         const data = await response.json();
-        
+
         if (!response.ok) {
           throw new Error(data.error || "Failed to fetch organization data");
         }
-        
+
         setOrgData(data);
       } catch (err) {
         console.error("Error fetching organization data:", err);
@@ -66,107 +150,107 @@ export default function OrganizationDashboardPage() {
         setLoading(false);
       }
     };
-    
+
     fetchOrgData();
   }, [address, isConnected]);
+
+  // Fetch campaign data function (extracted to reuse after campaign creation)
+  const fetchCampaignData = async (walletAddress: string) => {
+    setCampaignsLoading(true);
+    try {
+      // Connect to provider - updated for ethers v6
+      const provider = new ethers.BrowserProvider(window.ethereum);
+
+      // Create contract instances
+      const centralContract = new ethers.Contract(
+        charityCentral_CA,
+        charityCentral_ABI,
+        provider
+      );
+
+      // Get charity campaigns
+      const campaignAddresses = await centralContract.getCharityCampaigns(walletAddress);
+
+      if (campaignAddresses.length === 0) {
+        setCampaigns([]);
+        setCampaignsLoading(false);
+        return;
+      }
+
+      // Fetch details for each campaign
+      const campaignDetailsPromises = campaignAddresses.map(async (campaignAddress: string) => {
+        const campaignContract = new ethers.Contract(
+          campaignAddress,
+          charityCampaigns_ABI[0], // Using the first ABI in the array
+          provider
+        );
+
+        // Call getCampaignDetails
+        const details = await campaignContract.getCampaignDetails();
+
+        // Get total donated
+        const totalDonated = await campaignContract.totalDonated();
+
+        // Create a campaign object with the retrieved data
+        return {
+          id: campaignAddress,
+          address: campaignAddress,
+          title: details._name,
+          description: details._description,
+          goal: ethers.formatEther(details._goal),
+          raised: ethers.formatEther(totalDonated),
+          daysLeft: 30, // Default value
+          donors: 0, // Will fetch separately
+          state: details._state
+        };
+      });
+
+      const campaignDetails = await Promise.all(campaignDetailsPromises);
+
+      // Fetch additional details for each campaign
+      const enhancedCampaignsPromises = campaignDetails.map(async (campaign) => {
+        const campaignContract = new ethers.Contract(
+          campaign.address,
+          charityCampaigns_ABI[0],
+          provider
+        );
+
+        // Get donor count
+        try {
+          const donors = await campaignContract.getAllDonors();
+          campaign.donors = donors.length;
+        } catch (error) {
+          console.error("Error fetching donors for campaign:", error);
+        }
+
+        // Get milestones
+        try {
+          const milestones = await campaignContract.getMilestones();
+          campaign.milestones = milestones.targets.map((target: bigint, index: number) => ({
+            title: `Milestone ${index + 1}`,
+            amount: ethers.formatEther(target),
+            status: milestones.reached[index] ? "completed" : "pending"
+          }));
+        } catch (error) {
+          console.error("Error fetching milestones for campaign:", error);
+        }
+
+        return campaign;
+      });
+
+      const enhancedCampaigns = await Promise.all(enhancedCampaignsPromises);
+      setCampaigns(enhancedCampaigns);
+    } catch (error) {
+      console.error("Error fetching campaign data:", error);
+    } finally {
+      setCampaignsLoading(false);
+    }
+  };
 
   // Get campaign data from smart contract
   useEffect(() => {
     if (!address || !isConnected || !orgData) return;
-
-    const fetchCampaignData = async () => {
-      setCampaignsLoading(true);
-      try {
-        // Connect to provider - updated for ethers v6
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        
-        // Create contract instances
-        const centralContract = new ethers.Contract(
-          charityCentral_CA,
-          charityCentral_ABI,
-          provider
-        );
-        
-        // Get charity campaigns
-        const campaignAddresses = await centralContract.getCharityCampaigns(address);
-        
-        if (campaignAddresses.length === 0) {
-          setCampaigns([]);
-          setCampaignsLoading(false);
-          return;
-        }
-        
-        // Fetch details for each campaign
-        const campaignDetailsPromises = campaignAddresses.map(async (campaignAddress: string) => {
-          const campaignContract = new ethers.Contract(
-            campaignAddress,
-            charityCampaigns_ABI[0], // Using the first ABI in the array
-            provider
-          );
-          
-          // Call getCampaignDetails
-          const details = await campaignContract.getCampaignDetails();
-          
-          // Get total donated
-          const totalDonated = await campaignContract.totalDonated();
-          
-          // Create a campaign object with the retrieved data
-          return {
-            id: campaignAddress,
-            address: campaignAddress,
-            title: details._name,
-            description: details._description,
-            goal: ethers.formatEther(details._goal),
-            raised: ethers.formatEther(totalDonated),
-            daysLeft: 30, // Default value
-            donors: 0, // Will fetch separately
-            state: details._state
-          };
-        });
-        
-        const campaignDetails = await Promise.all(campaignDetailsPromises);
-        
-        // Fetch additional details for each campaign
-        const enhancedCampaignsPromises = campaignDetails.map(async (campaign) => {
-          const campaignContract = new ethers.Contract(
-            campaign.address,
-            charityCampaigns_ABI[0],
-            provider
-          );
-          
-          // Get donor count
-          try {
-            const donors = await campaignContract.getAllDonors();
-            campaign.donors = donors.length;
-          } catch (error) {
-            console.error("Error fetching donors for campaign:", error);
-          }
-          
-          // Get milestones
-          try {
-            const milestones = await campaignContract.getMilestones();
-            campaign.milestones = milestones.targets.map((target: bigint, index: number) => ({
-              title: `Milestone ${index + 1}`,
-              amount: ethers.formatEther(target),
-              status: milestones.reached[index] ? "completed" : "pending"
-            }));
-          } catch (error) {
-            console.error("Error fetching milestones for campaign:", error);
-          }
-          
-          return campaign;
-        });
-        
-        const enhancedCampaigns = await Promise.all(enhancedCampaignsPromises);
-        setCampaigns(enhancedCampaigns);
-      } catch (error) {
-        console.error("Error fetching campaign data:", error);
-      } finally {
-        setCampaignsLoading(false);
-      }
-    };
-    
-    fetchCampaignData();
+    fetchCampaignData(address);
   }, [address, isConnected, orgData]);
 
   // Show loading state
@@ -224,8 +308,91 @@ export default function OrganizationDashboardPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
+      {/* Create Campaign Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-[550px] bg-background border-border">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">Create New Campaign</DialogTitle>
+            <DialogDescription>
+              Enter the details for your new fundraising campaign
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-6 py-4">
+            {createCampaignError && (
+              <div className="bg-red-950/20 border border-red-800/30 text-red-400 px-4 py-3 rounded-md text-sm">
+                {createCampaignError}
+              </div>
+            )}
+            <div className="grid gap-2">
+              <Label htmlFor="name">Campaign Name</Label>
+              <Input
+                id="name"
+                name="name"
+                placeholder="Enter a clear, descriptive name"
+                value={campaignFormData.name}
+                onChange={handleCampaignInputChange}
+                disabled={createCampaignLoading}
+                className="bg-card/50"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                name="description"
+                placeholder="Detailed description of your campaign"
+                className="min-h-[120px] bg-card/50"
+                value={campaignFormData.description}
+                onChange={handleCampaignInputChange}
+                disabled={createCampaignLoading}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="goal">Funding Goal (ETH)</Label>
+              <Input
+                id="goal"
+                name="goal"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="100"
+                value={campaignFormData.goal}
+                onChange={handleCampaignInputChange}
+                disabled={createCampaignLoading}
+                className="bg-card/50"
+              />
+              <p className="text-xs text-muted-foreground">
+                Enter the amount in ETH (e.g., 100 for 100 ETH)
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDialogOpen(false)}
+              disabled={createCampaignLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreateCampaign}
+              disabled={createCampaignLoading || !campaignFormData.name || !campaignFormData.description || !campaignFormData.goal}
+            >
+              {createCampaignLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                "Create Campaign"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Banner section with background image */}
-      <section 
+      <section
         className="relative w-full py-16 md:py-24 text-white overflow-hidden"
         style={{
           backgroundImage: "url('/charity.png')",
@@ -252,20 +419,21 @@ export default function OrganizationDashboardPage() {
               <p className="text-xl text-slate-200 max-w-2xl drop-shadow-md">
                 {orgData.description || "No description available."}
               </p>
-              <div className="flex items-center gap-2 text-sm text-slate-300">
+              {/* <div className="flex items-center gap-2 text-sm text-slate-300">
                 <span className="font-medium">Wallet:</span>
                 <span className="font-mono bg-white/10 px-3 py-1 rounded-full">
                   {address?.slice(0, 6)}...{address?.slice(-4)}
                 </span>
-              </div>
+              </div> */}
             </div>
             <div className="flex flex-col md:flex-row lg:flex-col items-center md:items-end gap-4 lg:justify-center">
-              <Link href="/organizations/campaigns/new">
-                <Button className="w-full bg-primary hover:bg-primary/90 shadow-lg transition-all">
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  New Campaign
-                </Button>
-              </Link>
+              <Button 
+                className="w-full bg-primary hover:bg-primary/90 shadow-lg transition-all"
+                onClick={() => setDialogOpen(true)}
+              >
+                <PlusCircle className="mr-2 h-4 w-4" />
+                New Campaign
+              </Button>
             </div>
           </div>
         </div>
@@ -330,7 +498,7 @@ export default function OrganizationDashboardPage() {
             <h2 className="text-2xl font-bold text-foreground">Your Campaigns</h2>
             <p className="text-muted-foreground">Manage and track the progress of your fundraising efforts</p>
           </div>
-          
+
           <Card className="border-0 shadow-lg bg-card/60 backdrop-blur-sm overflow-hidden">
             <CardHeader className="bg-card/50 border-b border-border">
               <CardTitle>Campaign Overview</CardTitle>
@@ -349,12 +517,13 @@ export default function OrganizationDashboardPage() {
                   </div>
                   <h3 className="text-xl font-semibold text-foreground mb-2">No campaigns yet</h3>
                   <p className="text-muted-foreground mb-6 max-w-md mx-auto">You haven't created any campaigns yet. Start making a difference by creating your first campaign.</p>
-                  <Link href="/organizations/campaigns/new">
-                    <Button className="bg-primary hover:bg-primary/90">
-                      <PlusCircle className="mr-2 h-4 w-4" />
-                      Create Your First Campaign
-                    </Button>
-                  </Link>
+                  <Button 
+                    className="bg-primary hover:bg-primary/90"
+                    onClick={() => setDialogOpen(true)}
+                  >
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Create Your First Campaign
+                  </Button>
                 </div>
               ) : (
                 <div className="space-y-6">
@@ -392,9 +561,9 @@ export default function OrganizationDashboardPage() {
                           <span className="font-medium text-foreground">{formatEthAmount(campaign.raised)} ETH raised</span>
                           <span className="text-muted-foreground">of {formatEthAmount(campaign.goal)} ETH goal</span>
                         </div>
-                        <Progress 
-                          value={(parseFloat(campaign.raised) / parseFloat(campaign.goal)) * 100} 
-                          className="h-2" 
+                        <Progress
+                          value={(parseFloat(campaign.raised) / parseFloat(campaign.goal)) * 100}
+                          className="h-2"
                         />
                       </div>
                       {campaign.milestones && campaign.milestones.length > 0 && (
@@ -404,11 +573,10 @@ export default function OrganizationDashboardPage() {
                             {campaign.milestones.map((milestone, index) => (
                               <div
                                 key={index}
-                                className={`p-3 rounded-lg text-center ${
-                                  milestone.status === "completed"
+                                className={`p-3 rounded-lg text-center ${milestone.status === "completed"
                                     ? "bg-emerald-950/20 text-emerald-400 border border-emerald-800/50"
                                     : "bg-card/50 text-muted-foreground border border-border"
-                                }`}
+                                  }`}
                               >
                                 <div className="font-medium text-xs mb-1">{milestone.title}</div>
                                 <div className="text-sm">{formatEthAmount(milestone.amount)} ETH</div>
