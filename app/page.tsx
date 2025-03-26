@@ -3,12 +3,32 @@
 import Link from "next/link"
 import Image from "next/image"
 // import { Button } from "@/components/ui/button"
-import { ArrowRight, Heart, Shield, BarChart3, Zap } from "lucide-react"
+import { ArrowRight, Heart, Shield, BarChart3, Zap, User } from "lucide-react"
 import { IconButton, Button, Typography } from "@material-tailwind/react";
 import AboutCard from "@/components/about-card";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import TestimonialCarousel from "@/components/testimonial-carousel";
-import { mockLeaderboard } from "@/lib/mockData";
+import { getLeaderboard } from "@/lib/mockData";
+
+// Helper function to format WEI to ETH with proper decimal display
+function formatToEth(wei: number): string {
+  // Convert wei to ETH (1 ETH = 10^18 wei)
+  const ethValue = wei / 1000000000000000000;
+  
+  // Use toLocaleString to ensure it doesn't use scientific notation
+  // If the value is very small (less than 0.0001), show more decimals
+  if (ethValue < 0.0001 && ethValue > 0) {
+    // For tiny values, show up to 18 decimals but trim trailing zeros
+    const fullDecimalStr = ethValue.toFixed(18).replace(/\.?0+$/, "");
+    return fullDecimalStr + " ETH";
+  }
+  
+  // For regular values, show 4 decimals
+  return ethValue.toLocaleString('fullwide', { 
+    useGrouping: false,
+    maximumFractionDigits: 4 
+  }) + " ETH";
+}
 
 const SPONSORS = [
   "coinbase",
@@ -71,8 +91,24 @@ const EVENT_INFO = [
 ];
 
 export default function Home() {
-  // Get top 4 donors from the leaderboard
-  const topDonors = mockLeaderboard.slice(0, 4);
+  const [topDonors, setTopDonors] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    const fetchLeaderboard = async () => {
+      try {
+        const leaderboardData = await getLeaderboard();
+        // Get only top 4 donors for the homepage preview
+        setTopDonors(leaderboardData.slice(0, 4));
+      } catch (error) {
+        console.error("Error fetching leaderboard:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLeaderboard();
+  }, []);
   
   return (
     <div className="bg-white">
@@ -197,31 +233,51 @@ export default function Home() {
             </div>
           </div>
           <div className="mx-auto max-w-3xl space-y-4 py-12">
-            <div className="rounded-lg border bg-white/10 backdrop-blur-sm shadow-xl">
-              <div className="p-6 border-b border-white/20">
-                <div className="grid grid-cols-3 gap-4 font-medium text-white">
-                  <div>Donor</div>
-                  <div className="text-center">Total Donated</div>
-                  <div className="text-right">Campaigns</div>
+            {loading ? (
+              <div className="flex justify-center py-16">
+                <div className="animate-spin h-10 w-10 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+              </div>
+            ) : (
+              <div className="rounded-lg border bg-white/10 backdrop-blur-sm shadow-xl">
+                <div className="p-6 border-b border-white/20">
+                  <div className="grid grid-cols-3 gap-4 font-medium text-white">
+                    <div>Rank</div>
+                    <div>Donor</div>
+                    <div className="text-center">Total Donated</div>
+                  </div>
+                </div>
+                <div className="divide-y divide-white/20">
+                  {topDonors.map((donor) => (
+                    <div key={donor.rank} className="p-6">
+                      <div className="grid grid-cols-3 gap-4 text-white">
+                        <div className="flex items-center">
+                          <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-white font-bold">
+                            {donor.rank}
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          {donor.avatar ? (
+                            <Image 
+                              src={donor.avatar} 
+                              alt={donor.name || "Anonymous"}
+                              width={36}
+                              height={36}
+                              className="rounded-full h-8 w-8 ring-2 ring-white/20"
+                            />
+                          ) : (
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20 ring-2 ring-white/20">
+                              <User className="h-4 w-4 text-white" />
+                            </div>
+                          )}
+                          <span>{donor.name}</span>
+                        </div>
+                        <div className="flex items-center justify-center font-medium font-mono">{formatToEth(donor.amount)}</div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-              <div className="divide-y divide-white/20">
-                {topDonors.map((donor, index) => (
-                  <div key={index} className="p-6">
-                    <div className="grid grid-cols-3 gap-4 text-white">
-                      <div className="flex items-center space-x-2">
-                        <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-white font-bold">
-                          {donor.rank}
-                        </div>
-                        <span>{donor.name}</span>
-                      </div>
-                      <div className="flex items-center justify-center font-medium">{donor.amount} ETH</div>
-                      {/* <div className="flex items-center justify-end">{donor.campaigns}</div> */}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            )}
             <div className="flex justify-center">
               <Link href="/leaderboard">
                 <Button 
