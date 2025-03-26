@@ -122,7 +122,7 @@ Organizations can continue to manage and update campaigns. You can create new ca
 ---
 
 ## **🌍 Live Demo**
-🔗 **[DeNate Live App](https://.vercel.app/)**  
+🔗 **[DeNate Live App](https://de-nate.vercel.app/)**  
 
 ---
 
