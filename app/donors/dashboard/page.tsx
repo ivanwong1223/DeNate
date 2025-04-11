@@ -7,12 +7,26 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Heart, History } from "lucide-react"
-import { getDonorDashboardData } from "@/lib/mockData"
+import { getDonorDashboardData, getLeaderboard } from "@/lib/mockData"
 import { Donor } from "@/lib/types";
 import { useEffect, useState } from "react"
 import { useAccount } from "wagmi";
 import { ethers } from "ethers"
 import { charityCentral_ABI, charityCentral_CA, charityCampaigns_ABI } from "@/config/contractABI"
+
+interface Campaign {
+  address: string;
+  name: string;
+  description: string;
+  imageURI: string;
+  goal: string;
+  totalDonated: string;
+  state: number;
+  charityAddress: string;
+  donors: number;
+  daysLeft: number;
+  images?: string[];
+}
 
 // For demo purposes, using a static donor ID - in a real app, this would come from authentication
 const DEMO_DONOR_ID = "d1"
@@ -22,25 +36,42 @@ export default function DonorDashboardPage() {
   const [campaignDetails, setCampaignDetails] = useState<any[]>([])
   const [orgData, setOrgData] = useState<Partial<Donor> | null>(null);
   const [organizations, setOrganizations] = useState<any[]>([]);
+  const [timeframe, setTimeframe] = useState("all-time");
+  const [userLeaderboardInfo, setUserLeaderboardInfo] = useState<{ rank: number | string; amount: string }>({
+    rank: "unranked",
+    amount: "0",
+  });
 
   const contractAddress = charityCentral_CA;
   const contractABI = charityCentral_ABI;
-  const charityCampaignABI = [
-    {
-      inputs: [],
-      name: 'getCampaignDetails',
-      outputs: [
-        { internalType: 'string', name: 'name', type: 'string' },
-        { internalType: 'string', name: 'description', type: 'string' },
-        { internalType: 'uint256', name: 'goal', type: 'uint256' },
-        { internalType: 'uint256', name: 'totalDonated', type: 'uint256' },
-        { internalType: 'uint8', name: 'state', type: 'uint8' },
-        { internalType: 'address', name: 'charityAddress', type: 'address' }
-      ],
-      stateMutability: 'view',
-      type: 'function',
-    },
-  ];
+
+  useEffect(() => {
+    const fetchLeaderboard = async () => {
+      try {
+        const leaderboardData = await getLeaderboard();
+        // Find if current user is in leaderboard
+        const found = leaderboardData.find((donor: any) =>
+          donor.address.toLowerCase() === address?.toLowerCase()
+        );
+
+        if (found) {
+          setUserLeaderboardInfo({
+            rank: found.rank,
+            amount: ethers.formatUnits(found.amount, 18),
+          });
+        } else {
+          setUserLeaderboardInfo({ rank: "unranked", amount: "0" });
+        }
+
+      } catch (error) {
+        console.error("Error fetching leaderboard:", error);
+      }
+    };
+
+    if (address) {
+      fetchLeaderboard();
+    }
+  }, [timeframe, address]);
 
   useEffect(() => {
 
@@ -112,13 +143,15 @@ export default function DonorDashboardPage() {
         // Fetch campaign addresses
         const campaignAddresses = await centralContract.getAllCampaigns();
 
+        const campaignInterface = new ethers.Interface(charityCampaigns_ABI);
+
         // Fetch details for each campaign
         const detailedCampaigns = await Promise.all(
           campaignAddresses.map(async (address: string) => {
             // Create contract instance for each campaign
             const campaignContract = new ethers.Contract(
               address,
-              charityCampaignABI,
+              campaignInterface,
               signer
             );
 
@@ -127,13 +160,16 @@ export default function DonorDashboardPage() {
 
             // Return details with the campaign address
             return {
-              address,
-              name: details[0],
-              description: details[1],
-              goal: ethers.formatUnits(details[2], 18), // Assuming ETH has 18 decimals
-              totalDonated: ethers.formatUnits(details[3], 18),
-              state: details[4],
-              charityAddress: details[5]
+              name: details._name,
+              description: details._description,
+              imageURI: details._campaignImageURI || '',
+              goal: ethers.formatEther(details._goal),
+              totalDonated: ethers.formatEther(details._totalDonated),
+              state: Number(details._state),
+              charityAddress: details._charityAddress,
+              donors: Math.floor(Math.random() * 100), // Placeholder value
+              daysLeft: Math.floor(Math.random() * 50), // Placeholder value
+              images: [],
             };
           })
         );
@@ -166,6 +202,7 @@ export default function DonorDashboardPage() {
   }
 
   const { donor, recentDonations, activeCampaigns, impactMetrics } = donorData
+  const activeCampaignCount = campaignDetails.length;
 
   // Function to get organization name by wallet address
   const getOrgNameByAddress = (walletAddress: string) => {
@@ -220,9 +257,6 @@ export default function DonorDashboardPage() {
                   Donate Now
                 </Button>
               </Link>
-              <Link href="/donors/settings">
-                <Button variant="outline">Settings</Button>
-              </Link>
             </div>
           </div>
         </div>
@@ -236,8 +270,7 @@ export default function DonorDashboardPage() {
                 <CardTitle className="text-sm font-medium">Total Donated</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{donor.totalDonated} ETH</div>
-                <p className="text-xs text-muted-foreground">Across {donor.campaigns} campaigns</p>
+                <div className="text-2xl font-bold">{userLeaderboardInfo.amount} ETH</div>
               </CardContent>
             </Card>
             <Card>
@@ -245,8 +278,7 @@ export default function DonorDashboardPage() {
                 <CardTitle className="text-sm font-medium">Leaderboard Rank</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">#{donor.rank}</div>
-                <p className="text-xs text-muted-foreground">Top 1% of all donors</p>
+                <div className="text-2xl font-bold">{userLeaderboardInfo.rank === "unranked" ? "Unranked" : `#${userLeaderboardInfo.rank}`}</div>
               </CardContent>
             </Card>
             <Card>
@@ -254,45 +286,21 @@ export default function DonorDashboardPage() {
                 <CardTitle className="text-sm font-medium">Active Campaigns</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{activeCampaigns.length}</div>
+                <div className="text-2xl font-bold">{activeCampaignCount}</div>
                 <p className="text-xs text-muted-foreground">Currently supporting</p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Donor Badges</CardTitle>
+                <CardTitle className="text-sm font-medium">Donor Status</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{donor.badges.length}</div>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {donor.badges.map((badge, index) => (
-                    <Badge key={index} variant="outline" className="text-xs">
-                      {badge}
-                    </Badge>
-                  ))}
-                </div>
+                <div className="text-2xl font-bold">Active</div>
               </CardContent>
             </Card>
           </div>
 
           <div className="grid gap-6 mt-8 lg:grid-cols-2">
-            <Card className="col-span-2">
-              <CardHeader>
-                <CardTitle>Your Impact</CardTitle>
-                <CardDescription>The difference your donations have made</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                  {impactMetrics.map((metric, index) => (
-                    <div key={index} className="flex flex-col items-center justify-center p-4 border rounded-lg">
-                      <h3 className="text-lg font-medium">{metric.metric}</h3>
-                      <p className="text-3xl font-bold">{metric.value}</p>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
             <Card>
               <CardHeader>
                 <CardTitle>Active Campaigns</CardTitle>
