@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAccount } from "wagmi";
 import Image from "next/image";
@@ -10,74 +10,151 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Heart, Clock, Users, Share2, ExternalLink } from "lucide-react";
+import { Heart, Clock, Users, Share2, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
 import { ethers } from "ethers";
+import { charityCampaigns_ABI } from "@/config/contractABI";
+import axios from "axios";
+
+interface Campaign {
+  address: string;
+  name: string;
+  description: string;
+  imageURI: string;
+  goal: string;
+  totalDonated: string;
+  state: number;
+  charityAddress: string;
+  donors: number;
+  daysLeft: number;
+  images?: string[];
+}
+
+interface Milestone {
+  target: string;
+  reached: boolean;
+  fundsReleased: boolean;
+}
+
+interface Donor {
+  donorAddress: string;
+  donorName: string;
+  totalDonated: string;
+  isTopDonor: boolean;
+  date: string;
+}
+
+const ImageCarousel = ({ images }: { images: string[] }) => {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  if (!images || images.length === 0) {
+    return null;
+  }
+
+  const nextImage = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const prevImage = () => {
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
+  const getDisplayUrl = (ipfsUrl: string) => {
+    if (!ipfsUrl) return '/placeholder.svg';
+    return ipfsUrl.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/');
+  };
+
+  return (
+    <div className="relative w-full h-[300px] overflow-hidden rounded-t-lg">
+      <div className="absolute inset-0 bg-gray-900/20 z-10"></div>
+      <div className="relative h-full w-full">
+        <Image 
+          src={getDisplayUrl(images[currentImageIndex])} 
+          alt="Campaign image" 
+          fill 
+          style={{ objectFit: 'cover' }} 
+          className="transition-opacity duration-300"
+        />
+      </div>
+      
+      {images.length > 1 && (
+        <>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-black/30 text-white hover:bg-black/50 rounded-full h-8 w-8"
+            onClick={prevImage}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-black/30 text-white hover:bg-black/50 rounded-full h-8 w-8"
+            onClick={nextImage}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          
+          <div className="absolute bottom-2 left-0 right-0 z-20 flex justify-center gap-1">
+            {images.map((_, index) => (
+              <button 
+                key={index} 
+                className={`w-2 h-2 rounded-full ${currentImageIndex === index ? 'bg-white' : 'bg-white/60'}`}
+                onClick={() => setCurrentImageIndex(index)}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+// Fetch and parse IPFS data
+const fetchIPFSData = async (uri: string) => {
+  if (!uri || !uri.startsWith('ipfs://')) return null;
+  
+  try {
+    const url = uri.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/');
+    const response = await axios.get(url);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching IPFS data:', error);
+    return null;
+  }
+};
 
 export default function CampaignDetailPage({ params }: { params: { address: string } }) {
-  const { address } = params;
-  console.log("Campaign Address:", address);
-  const [campaignDetails, setCampaignDetails] = useState<any>({});
+
+  const campaignAddress = params.address;
+  
+  const [campaignDetails, setCampaignDetails] = useState<Campaign>({
+    address: '',
+    name: '',
+    description: '',
+    imageURI: '',
+    goal: '0',
+    totalDonated: '0',
+    state: 0,
+    charityAddress: '',
+    donors: 0,
+    daysLeft: 30,
+    images: []
+  });
   const [donationAmount, setDonationAmount] = useState<string>("");
-  const [milestones, setMilestones] = useState<any>(null);
-  const [donorsData, setDonorsData] = useState<any[]>([]); // Store donor info
+  const [milestones, setMilestones] = useState<{
+    targets: string[];
+    reached: boolean[];
+    fundsReleased: boolean[];
+  } | null>(null);
+  const [donorsData, setDonorsData] = useState<Donor[]>([]);
   const [isDonating, setIsDonating] = useState(false);
   const [donationError, setDonationError] = useState<string | null>(null);
   const [organizations, setOrganizations] = useState<any[]>([]);
+  const [imageCarouselImages, setImageCarouselImages] = useState<string[]>([]);
 
   const router = useRouter();
   const { isConnected } = useAccount();
-
-  const charityCampaignABI = [
-    {
-      inputs: [],
-      name: "getMilestones",
-      outputs: [
-        { internalType: "uint256[]", name: "targets", type: "uint256[]" },
-        { internalType: "bool[]", name: "reached", type: "bool[]" },
-        { internalType: "bool[]", name: "fundsReleased", type: "bool[]" },
-      ],
-      stateMutability: "view",
-      type: "function",
-    },
-    {
-      inputs: [],
-      name: "donate",
-      outputs: [],
-      stateMutability: "payable",
-      type: "function",
-    },
-    {
-      inputs: [],
-      name: "getCampaignDetails",
-      outputs: [
-        { internalType: "string", name: "name", type: "string" },
-        { internalType: "string", name: "description", type: "string" },
-        { internalType: "uint256", name: "goal", type: "uint256" },
-        { internalType: "uint256", name: "totalDonated", type: "uint256" },
-        { internalType: "uint8", name: "state", type: "uint8" },
-        { internalType: "address", name: "charityAddress", type: "address" },
-      ],
-      stateMutability: "view",
-      type: "function",
-    },
-    {
-      inputs: [],
-      name: "getAllDonors",
-      outputs: [{ internalType: "address[]", name: "", type: "address[]" }],
-      stateMutability: "view",
-      type: "function",
-    },
-    {
-      inputs: [{ internalType: "address", name: "", type: "address" }],
-      name: "donors",
-      outputs: [
-        { internalType: "uint256", name: "totalDonated", type: "uint256" },
-        { internalType: "bool", name: "isTopDonor", type: "bool" },
-      ],
-      stateMutability: "view",
-      type: "function",
-    },
-  ];
 
   // Fetch campaign details, milestones, and donors
   const fetchCampaignData = async () => {
@@ -90,106 +167,137 @@ export default function CampaignDetailPage({ params }: { params: { address: stri
       const provider = new ethers.BrowserProvider(window.ethereum);
       await window.ethereum.request({ method: "eth_requestAccounts" });
       const signer = await provider.getSigner();
-      const campaignContract = new ethers.Contract(address, charityCampaignABI, signer);
+
+      const campaignInterface = new ethers.Interface(charityCampaigns_ABI);
+      const campaignContract = new ethers.Contract(
+        campaignAddress,
+        campaignInterface,
+        signer
+      );
 
       // Fetch campaign details
       const details = await campaignContract.getCampaignDetails();
-      const campaignData = {
-        address,
-        name: details[0],
-        description: details[1],
-        goal: ethers.formatUnits(details[2], 18),
-        totalDonated: ethers.formatUnits(details[3], 18),
-        state: details[4],
-        charityAddress: details[5],
-        image: "/donors.png",
-        daysLeft: Math.floor(Math.random() * 50), // Placeholder, replace if contract provides
+      
+      const campaignData: Campaign = {
+        address: campaignAddress,
+        name: details._name,
+        description: details._description,
+        imageURI: details._campaignImageURI || '',
+        goal: ethers.formatEther(details._goal),
+        totalDonated: ethers.formatEther(details._totalDonated),
+        state: Number(details._state),
+        charityAddress: details._charityAddress,
+        daysLeft: Math.floor(Math.random() * 50), // Placeholder
         donors: 0, // Placeholder, update with real donor count
+        images: [],
       };
+      
+      if (campaignData.imageURI) {
+        try {
+          const imageData = await fetchIPFSData(campaignData.imageURI);
+          if (imageData && Array.isArray(imageData.images)) {
+            campaignData.images = imageData.images;
+            setImageCarouselImages(imageData.images);
+          }
+        } catch (error) {
+          console.error(`Error fetching images for campaign ${campaignData.address}:`, error);
+        }
+      }
+      
       setCampaignDetails(campaignData);
-      console.log("Campaign Details:", campaignData);
 
       // Fetch milestones
-      const milestoneData = await campaignContract.getMilestones();
-      const formattedMilestones = {
-        targets: milestoneData[0].map((target: ethers.BigNumberish) =>
-          ethers.formatUnits(target, 18)
-        ),
-        reached: milestoneData[1],
-        fundsReleased: milestoneData[2],
-      };
-      setMilestones(formattedMilestones);
-      console.log("Milestones:", formattedMilestones);
-
-      // Fetch donors
-      const fetchDonorNames = async (addresses: string[]) => {
-        try {
-          const response = await fetch("/api/campaign/get-recent-donors");
-          if (!response.ok) throw new Error("Failed to fetch donor names");
-          const donors = await response.json();
-
-          const addressToNameMap = donors.reduce((map: Record<string, string>, donor: any) => {
-            map[donor.walletAddress.toLowerCase()] = donor.name || "Anonymous";
-            return map;
-          }, {});
-
-          return addresses.map((address) => ({
-            address,
-            name: addressToNameMap[address.toLowerCase()] || "Anonymous",
-          }));
-        } catch (error) {
-          console.error("Error fetching donor names:", error);
-          return addresses.map((address) => ({
-            address,
-            name: "Anonymous",
-          }));
+      try {
+        const milestoneData = await campaignContract.getMilestones();
+        
+        if (!milestoneData || !milestoneData.targets || !milestoneData.reached || !milestoneData.fundsReleased) {
+          console.error("Invalid milestone data structure:", milestoneData);
+          return;
         }
-      };
+        
+        const formattedMilestones = {
+          targets: Array.from(milestoneData.targets as bigint[]).map((target: bigint) => ethers.formatEther(target)),
+          reached: Array.from(milestoneData.reached as unknown[]).map(Boolean),
+          fundsReleased: Array.from(milestoneData.fundsReleased as unknown[]).map(Boolean),
+        };
+        
+        setMilestones(formattedMilestones);
+      } catch (error) {
+        console.error("Error fetching milestones:", error);
+      }
 
-      // Fetch donors
-      const donorAddresses = await campaignContract.getAllDonors();
-      console.log("Donor Addresses:", donorAddresses);
-
-      // Fetch donor names
-      const donorNames = await fetchDonorNames(donorAddresses);
-      console.log("Donor Names:", donorNames);
-
-      const donorsInfo = await Promise.all(
-        donorAddresses.map(async (donorAddress: string) => {
-          const donorData = await campaignContract.donors(donorAddress);
-          const donorName = donorNames.find((d) => d.address === donorAddress)?.name || "Anonymous";
-
-          return {
-            donorAddress,
-            donorName,
-            totalDonated: ethers.formatUnits(donorData.totalDonated, 18),
-            isTopDonor: donorData.isTopDonor,
-            date: new Date().toLocaleDateString(), // Placeholder, no timestamp in contract
-          };
-        })
-      );
-      // Sort by donation amount (descending) and take recent donors
-      const sortedDonors = donorsInfo.sort(
-        (a, b) => parseFloat(b.totalDonated) - parseFloat(a.totalDonated)
-      );
-      setDonorsData(sortedDonors);
-      campaignData.donors = donorAddresses.length; // Update donors count
-      setCampaignDetails(campaignData); // Update with real donor count
-      console.log("Donors Data:", sortedDonors);
+      try {
+        const donorAddresses = await campaignContract.getAllDonors();
+        const donorNames = await fetchDonorNames(donorAddresses);
+        
+        const donorsInfo: Donor[] = await Promise.all(
+          donorAddresses.map(async (donorAddress: string) => {
+            const donorData = await campaignContract.donors(donorAddress);
+            const donorName = donorNames.find((d) => d.address === donorAddress)?.name || "Anonymous";
+            
+            return {
+              donorAddress,
+              donorName,
+              totalDonated: ethers.formatEther(donorData.totalDonated),
+              isTopDonor: Boolean(donorData.isTopDonor),
+              date: new Date().toLocaleDateString() 
+            };
+          })
+        );
+        
+        const sortedDonors = donorsInfo.sort(
+          (a, b) => parseFloat(b.totalDonated) - parseFloat(a.totalDonated)
+        );
+        
+        setDonorsData(sortedDonors);
+        
+        campaignData.donors = donorAddresses.length;
+        setCampaignDetails(campaignData);
+      } catch (error) {
+        console.error("Error fetching donors:", error);
+      }
+      
     } catch (error) {
       console.error("Error fetching campaign data:", error);
     }
   };
 
+  // Fetch donors
+  const fetchDonorNames = async (addresses: string[]) => {
+    try {
+      const response = await fetch("/api/campaign/get-recent-donors");
+      if (!response.ok) throw new Error("Failed to fetch donor names");
+      const donors = await response.json();
+
+      const addressToNameMap = donors.reduce((map: Record<string, string>, donor: any) => {
+        map[donor.walletAddress.toLowerCase()] = donor.name || "Anonymous";
+        return map;
+      }, {});
+
+      return addresses.map((address) => ({
+        address,
+        name: addressToNameMap[address.toLowerCase()] || "Anonymous",
+      }));
+    } catch (error) {
+      console.error("Error fetching donor names:", error);
+      return addresses.map((address) => ({
+        address,
+        name: "Anonymous",
+      }));
+    }
+  };
+
   useEffect(() => {
-    fetchCampaignData();
-  }, [address]);
+    if (campaignAddress) {
+      fetchCampaignData();
+    }
+  }, [campaignAddress]);
 
   // Fetch all organizations
   useEffect(() => {
     const fetchOrganizations = async () => {
       try {
-        const response = await fetch("/api/organizations/getAllOrganizations"); // Assuming the endpoint is /api/organizations
+        const response = await fetch("/api/organizations/getAllOrganizations");
         const data = await response.json();
 
         if (!response.ok) {
@@ -224,7 +332,13 @@ export default function CampaignDetailPage({ params }: { params: { address: stri
       const provider = new ethers.BrowserProvider(window.ethereum);
       await window.ethereum.request({ method: "eth_requestAccounts" });
       const signer = await provider.getSigner();
-      const campaignContract = new ethers.Contract(address, charityCampaignABI, signer);
+      
+      const campaignInterface = new ethers.Interface(charityCampaigns_ABI);
+      const campaignContract = new ethers.Contract(
+        campaignAddress,
+        campaignInterface,
+        signer
+      );
 
       const tx = await campaignContract.donate({
         value: ethers.parseEther(donationAmount),
@@ -258,24 +372,41 @@ export default function CampaignDetailPage({ params }: { params: { address: stri
     return org?.name || walletAddress; // Return name if found, otherwise fallback to address
   };
 
+  const getDisplayUrl = (ipfsUrl: string) => {
+    if (!ipfsUrl) return '/placeholder.svg';
+    return ipfsUrl.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/');
+  };
+
+  const calculateProgressPercentage = () => {
+    const goalValue = parseFloat(campaignDetails.goal || "0");
+    const donatedValue = parseFloat(campaignDetails.totalDonated || "0");
+    
+    if (goalValue <= 0) return 0;
+    return Math.min((donatedValue / goalValue) * 100, 100);
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
       <section className="w-full py-12 md:py-24 lg:py-32 bg-muted/50">
         <div className="container px-4 md:px-6">
           <div className="grid gap-6 lg:grid-cols-2 lg:gap-12">
             <div>
-              <Image
-                src={campaignDetails.image || "/placeholder.svg"}
-                alt={campaignDetails.name}
-                width={800}
-                height={400}
-                className="rounded-lg object-cover w-full aspect-video"
-              />
+              {imageCarouselImages.length > 0 ? (
+                <ImageCarousel images={imageCarouselImages} />
+              ) : (
+                <Image
+                  src="/placeholder.svg"
+                  alt={campaignDetails.name}
+                  width={800}
+                  height={400}
+                  className="rounded-lg object-cover w-full aspect-video"
+                />
+              )}
             </div>
             <div className="flex flex-col space-y-4">
               <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">{campaignDetails.name}</h1>
               <p className="text-sm text-muted-foreground">
-                {getOrgNameByAddress(campaignDetails.charityAddress)} {/* Display org name instead of address */}
+                {getOrgNameByAddress(campaignDetails.charityAddress)}
               </p>
               <p className="text-muted-foreground">{campaignDetails.description}</p>
               <div className="space-y-2">
@@ -283,7 +414,7 @@ export default function CampaignDetailPage({ params }: { params: { address: stri
                   <span className="font-medium">{campaignDetails.totalDonated} ETH raised</span>
                   <span className="text-muted-foreground">of {campaignDetails.goal} ETH goal</span>
                 </div>
-                <Progress value={(campaignDetails.totalDonated / campaignDetails.goal) * 100} className="h-2" />
+                <Progress value={calculateProgressPercentage()} className="h-2" />
               </div>
               <div className="flex justify-between text-sm text-muted-foreground">
                 <div className="flex items-center">
@@ -445,6 +576,9 @@ export default function CampaignDetailPage({ params }: { params: { address: stri
                       </Card>
                     );
                   })}
+                  {(!milestones || (milestones.targets.length === 0)) && (
+                    <p className="text-muted-foreground">No milestones defined for this campaign.</p>
+                  )}
                 </div>
               </div>
             </TabsContent>

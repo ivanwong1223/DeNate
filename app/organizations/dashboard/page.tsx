@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, PlusCircle, Users, Clock, ChevronRight, BarChart3, Award, X } from "lucide-react";
+import { Loader2, PlusCircle, Users, Clock, ChevronRight, BarChart3, Award, X, Upload, ChevronLeft, ChevronRight as ChevronRightIcon } from "lucide-react";
 import { Organization } from "@/lib/types";
 import Link from "next/link";
 import { Progress } from "@/components/ui/progress";
@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import axios from "axios";
 
 // Campaign interface based on the contract structure
 interface Campaign {
@@ -33,7 +34,90 @@ interface Campaign {
     amount: string;
     status: string;
   }[];
+  images?: string[];
+  imageURI?: string;
 }
+
+const ImageCarousel = ({ images }: { images: string[] }) => {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  if (!images || images.length === 0) {
+    return null;
+  }
+
+  const nextImage = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const prevImage = () => {
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
+  const getDisplayUrl = (ipfsUrl: string) => {
+    if (!ipfsUrl) return '';
+    return ipfsUrl.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/');
+  };
+
+  return (
+    <div className="relative w-full h-48 md:h-56 rounded-lg overflow-hidden mb-4">
+      <div className="absolute inset-0 bg-gray-900/20 z-10"></div>
+      <div className="relative h-full w-full">
+        <Image 
+          src={getDisplayUrl(images[currentImageIndex])} 
+          alt="Campaign image" 
+          fill 
+          style={{ objectFit: 'cover' }} 
+          className="transition-opacity duration-300"
+        />
+      </div>
+      
+      {images.length > 1 && (
+        <>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-black/30 text-white hover:bg-black/50 rounded-full h-8 w-8"
+            onClick={prevImage}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-black/30 text-white hover:bg-black/50 rounded-full h-8 w-8"
+            onClick={nextImage}
+          >
+            <ChevronRightIcon className="h-4 w-4" />
+          </Button>
+          
+          <div className="absolute bottom-2 left-0 right-0 z-20 flex justify-center gap-1">
+            {images.map((_, index) => (
+              <button 
+                key={index} 
+                className={`w-2 h-2 rounded-full ${currentImageIndex === index ? 'bg-white' : 'bg-white/60'}`}
+                onClick={() => setCurrentImageIndex(index)}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+// Fetch and parse IPFS data
+const fetchIPFSData = async (uri: string) => {
+  if (!uri || !uri.startsWith('ipfs://')) return null;
+  
+  try {
+    const url = uri.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/');
+    const response = await axios.get(url);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching IPFS data:', error);
+    return null;
+  }
+};
 
 export default function OrganizationDashboardPage() {
   const { address, isConnected } = useAccount();
@@ -50,6 +134,8 @@ export default function OrganizationDashboardPage() {
     description: "",
     goal: ""
   });
+  const [campaignImages, setCampaignImages] = useState<File[]>([]);
+  const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
 
   // Handle campaign form input change
   const handleCampaignInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -60,6 +146,35 @@ export default function OrganizationDashboardPage() {
     }));
   };
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    
+    const files = Array.from(e.target.files);
+    // Check if adding these files would exceed the limit
+    if (campaignImages.length + files.length > 5) {
+      setCreateCampaignError("Maximum 5 images allowed");
+      return;
+    }
+    
+    setCampaignImages(prev => [...prev, ...files]);
+    
+    const newPreviewUrls = files.map(file => URL.createObjectURL(file));
+    setImagePreviewUrls(prev => [...prev, ...newPreviewUrls]);
+    
+    setCreateCampaignError("");
+    
+    e.target.value = '';
+  };
+
+  // Remove an image
+  const removeImage = (index: number) => {
+    URL.revokeObjectURL(imagePreviewUrls[index]);
+    
+    // Remove the image and its preview URL
+    setCampaignImages(prev => prev.filter((_, i) => i !== index));
+    setImagePreviewUrls(prev => prev.filter((_, i) => i !== index));
+  };
+
   // Reset form when dialog closes
   const resetCampaignForm = () => {
     setCampaignFormData({
@@ -67,12 +182,57 @@ export default function OrganizationDashboardPage() {
       description: "",
       goal: ""
     });
+    imagePreviewUrls.forEach(url => URL.revokeObjectURL(url));
+    setCampaignImages([]);
+    setImagePreviewUrls([]);
     setCreateCampaignError("");
     setCreateCampaignLoading(false);
   };
 
+  // Upload file to Pinata and get IPFS hash
+  const uploadToPinata = async (file: File): Promise<string> => {
+    const url = 'https://api.pinata.cloud/pinning/pinFileToIPFS';
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await axios.post(url, formData, {
+        headers: {
+          pinata_api_key: process.env.NEXT_PUBLIC_PINATA_API_KEY,
+          pinata_secret_api_key: process.env.NEXT_PUBLIC_PINATA_API_SECRET,
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      const ipfsHash = response.data.IpfsHash;
+      return `ipfs://${ipfsHash}`;
+    } catch (error) {
+      console.error('Pinata upload error:', error);
+      throw new Error('Failed to upload image to Pinata');
+    }
+  };
+
+  // Upload JSON metadata to Pinata
+  const uploadJSONToPinata = async (jsonData: any): Promise<string> => {
+    const url = 'https://api.pinata.cloud/pinning/pinJSONToIPFS';
+
+    try {
+      const response = await axios.post(url, jsonData, {
+        headers: {
+          pinata_api_key: process.env.NEXT_PUBLIC_PINATA_API_KEY,
+          pinata_secret_api_key: process.env.NEXT_PUBLIC_PINATA_API_SECRET,
+          'Content-Type': 'application/json',
+        },
+      });
+      const ipfsHash = response.data.IpfsHash;
+      return `ipfs://${ipfsHash}`;
+    } catch (error) {
+      console.error('Pinata JSON upload error:', error);
+      throw new Error('Failed to upload metadata to Pinata');
+    }
+  };
+
   // Handle campaign creation
-  const handleCreateCampaign = () => {
+  const handleCreateCampaign = async () => {
     if (!isConnected || !address) {
       setCreateCampaignError("Please connect your wallet first");
       return;
@@ -81,10 +241,31 @@ export default function OrganizationDashboardPage() {
     setCreateCampaignLoading(true);
     setCreateCampaignError("");
 
-    // Connect to provider and contract
-    const provider = new ethers.BrowserProvider(window.ethereum);
-    
-    provider.getSigner().then(signer => {
+    try {
+      let imagesIpfsLink = null;
+      
+      // Upload images to IPFS if any are provided
+      if (campaignImages.length > 0) {
+        try {
+          const imageUploadPromises = campaignImages.map(uploadToPinata);
+          const imageIPFSHashes = await Promise.all(imageUploadPromises);
+          
+          imagesIpfsLink = await uploadJSONToPinata({
+            images: imageIPFSHashes
+          });
+          
+          console.log("Campaign images uploaded to IPFS:", imagesIpfsLink);
+        } catch (error) {
+          console.error("Error uploading images to IPFS:", error);
+          setCreateCampaignError("Failed to upload images. Please try again.");
+          setCreateCampaignLoading(false);
+          return;
+        }
+      }
+
+      // Connect to provider and contract
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
       const contract = new ethers.Contract(
         charityCentral_CA,
         charityCentral_ABI,
@@ -95,32 +276,31 @@ export default function OrganizationDashboardPage() {
       const goalInWei = ethers.parseEther(campaignFormData.goal);
 
       // Call createCampaign function
-      contract.createCampaign(
+      const tx = await contract.createCampaign(
         campaignFormData.name,
         campaignFormData.description,
-        goalInWei
-      ).then(transaction => {
-        console.log("Transaction sent:", transaction);
-        return transaction.wait();
-      }).then(receipt => {
-        console.log("Transaction confirmed:", receipt);
-        setDialogOpen(false);
-        resetCampaignForm();
-        
-        // Refresh campaign data
-        if (address && isConnected && orgData) {
-          fetchCampaignData(address);
-        }
-      }).catch(err => {
-        console.error("Error creating campaign:", err);
-        setCreateCampaignError(err.message || "Failed to create campaign");
-        setCreateCampaignLoading(false);
-      });
-    }).catch(err => {
-      console.error("Error getting signer:", err);
-      setCreateCampaignError(err.message || "Failed to connect to wallet");
+        goalInWei,
+        imagesIpfsLink || "" // Pass empty string if no images
+      );
+
+      console.log("Transaction sent:", tx);
+      const receipt = await tx.wait();
+      console.log("Transaction confirmed:", receipt);
+      
+      // Close dialog and reset form
+      setDialogOpen(false);
+      resetCampaignForm();
+      
+      // Refresh campaign data
+      if (address && isConnected && orgData) {
+        fetchCampaignData(address);
+      }
+    } catch (err: any) {
+      console.error("Error creating campaign:", err);
+      setCreateCampaignError(err instanceof Error ? err.message : "Failed to create campaign");
+    } finally {
       setCreateCampaignLoading(false);
-    });
+    }
   };
 
   // Get org data from database
@@ -154,7 +334,7 @@ export default function OrganizationDashboardPage() {
     fetchOrgData();
   }, [address, isConnected]);
 
-  // Fetch campaign data function (extracted to reuse after campaign creation)
+  // Fetch campaign data function (modified to fetch image data from IPFS)
   const fetchCampaignData = async (walletAddress: string) => {
     setCampaignsLoading(true);
     try {
@@ -177,19 +357,19 @@ export default function OrganizationDashboardPage() {
         return;
       }
 
+      // Create Interface from ABI for campaign contracts
+      const campaignInterface = new ethers.Interface(charityCampaigns_ABI);
+
       // Fetch details for each campaign
       const campaignDetailsPromises = campaignAddresses.map(async (campaignAddress: string) => {
         const campaignContract = new ethers.Contract(
           campaignAddress,
-          charityCampaigns_ABI[0], // Using the first ABI in the array
+          campaignInterface,
           provider
         );
 
         // Call getCampaignDetails
         const details = await campaignContract.getCampaignDetails();
-
-        // Get total donated
-        const totalDonated = await campaignContract.totalDonated();
 
         // Create a campaign object with the retrieved data
         return {
@@ -198,20 +378,21 @@ export default function OrganizationDashboardPage() {
           title: details._name,
           description: details._description,
           goal: ethers.formatEther(details._goal),
-          raised: ethers.formatEther(totalDonated),
+          raised: ethers.formatEther(details._totalDonated),
           daysLeft: 30, // Default value
           donors: 0, // Will fetch separately
-          state: details._state
+          state: details._state,
+          imageURI: details._campaignImageURI || "" // Get the campaign image URI
         };
       });
 
-      const campaignDetails = await Promise.all(campaignDetailsPromises);
+      let campaignDetails = await Promise.all(campaignDetailsPromises);
 
       // Fetch additional details for each campaign
       const enhancedCampaignsPromises = campaignDetails.map(async (campaign) => {
         const campaignContract = new ethers.Contract(
           campaign.address,
-          charityCampaigns_ABI[0],
+          campaignInterface,
           provider
         );
 
@@ -233,6 +414,18 @@ export default function OrganizationDashboardPage() {
           }));
         } catch (error) {
           console.error("Error fetching milestones for campaign:", error);
+        }
+
+        // Fetch images from IPFS if available
+        if (campaign.imageURI) {
+          try {
+            const imageData = await fetchIPFSData(campaign.imageURI);
+            if (imageData && Array.isArray(imageData.images)) {
+              campaign.images = imageData.images;
+            }
+          } catch (error) {
+            console.error(`Error fetching images for campaign ${campaign.id}:`, error);
+          }
         }
 
         return campaign;
@@ -295,6 +488,7 @@ export default function OrganizationDashboardPage() {
   const totalRaised = campaigns.reduce((sum, campaign) => sum + parseFloat(campaign.raised), 0).toFixed(8);
   // Calculate the total goal amount across all campaigns
   const totalGoal = campaigns.reduce((sum, campaign) => sum + parseFloat(campaign.goal), 0).toFixed(8);
+  console.log("Check goal: ", totalGoal);
   // Calculate the total donor count
   const totalDonors = campaigns.reduce((sum, campaign) => sum + campaign.donors, 0);
 
@@ -310,14 +504,14 @@ export default function OrganizationDashboardPage() {
     <div className="flex flex-col min-h-screen bg-background">
       {/* Create Campaign Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[550px] bg-background border-border">
+        <DialogContent className="sm:max-w-[550px] bg-background border-border max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="text-2xl">Create New Campaign</DialogTitle>
             <DialogDescription>
               Enter the details for your new fundraising campaign
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-6 py-4">
+          <div className="grid gap-6 py-4 overflow-y-auto pr-2">
             {createCampaignError && (
               <div className="bg-red-950/20 border border-red-800/30 text-red-400 px-4 py-3 rounded-md text-sm">
                 {createCampaignError}
@@ -365,8 +559,76 @@ export default function OrganizationDashboardPage() {
                 Enter the amount in ETH (e.g., 100 for 100 ETH)
               </p>
             </div>
+            
+            {/* Campaign Images Upload */}
+            <div className="grid gap-2">
+              <Label htmlFor="images">Campaign Images (Up to 5)</Label>
+              
+              {/* Image previews */}
+              {imagePreviewUrls.length > 0 && (
+                <div className="grid gap-4 mb-4 max-h-[300px] overflow-y-auto pr-2">
+                  {imagePreviewUrls.map((url, index) => (
+                    <div key={index} className="relative flex items-center gap-3 border border-border rounded-md p-2">
+                      <div className="h-12 w-12 relative overflow-hidden rounded-md">
+                        <Image 
+                          src={url} 
+                          alt={`Preview ${index}`} 
+                          fill 
+                          style={{ objectFit: 'cover' }} 
+                        />
+                      </div>
+                      <div className="flex-1 overflow-hidden">
+                        <p className="text-sm truncate">{campaignImages[index].name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {Math.round(campaignImages[index].size / 1024)} KB
+                        </p>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8" 
+                        onClick={() => removeImage(index)}
+                        type="button"
+                        disabled={createCampaignLoading}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {/* Upload button */}
+              {imagePreviewUrls.length < 5 && (
+                <div className="flex items-center">
+                  <Input
+                    id="images"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageUpload}
+                    disabled={createCampaignLoading || imagePreviewUrls.length >= 5}
+                    className="hidden"
+                  />
+                  <Button 
+                    variant="outline" 
+                    onClick={() => document.getElementById('images')?.click()}
+                    disabled={createCampaignLoading || imagePreviewUrls.length >= 5}
+                    type="button"
+                    className="flex-1"
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload Images
+                  </Button>
+                </div>
+              )}
+              
+              <p className="text-xs text-muted-foreground">
+                Upload up to 5 high-quality images related to your campaign (PNG, JPG)
+              </p>
+            </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="pt-4 border-t border-border mt-2">
             <Button
               variant="outline"
               onClick={() => setDialogOpen(false)}
@@ -528,63 +790,70 @@ export default function OrganizationDashboardPage() {
               ) : (
                 <div className="space-y-6">
                   {campaigns.map((campaign) => (
-                    <div key={campaign.id} className="border border-border rounded-lg p-6 hover:bg-card/80 transition-colors">
-                      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-xl text-foreground">{campaign.title}</h3>
-                          <p className="text-muted-foreground mt-1 line-clamp-2">{campaign.description}</p>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
-                            <div className="flex items-center">
-                              <Users className="mr-1 h-4 w-4" />
-                              <span>{campaign.donors} donors</span>
-                            </div>
-                            <div className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
-                              {campaign.state === 0 ? "Active" : campaign.state === 1 ? "Completed" : "Inactive"}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex gap-3">
-                          <Link href={`/organizations/campaigns/${campaign.id}`}>
-                            <Button variant="outline" size="sm">
-                              View Details
-                            </Button>
-                          </Link>
-                          <Link href={`/organizations/campaigns/${campaign.id}/edit`}>
-                            <Button variant="outline" size="sm">
-                              Edit
-                            </Button>
-                          </Link>
-                        </div>
-                      </div>
-                      <div className="mt-4 space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="font-medium text-foreground">{formatEthAmount(campaign.raised)} ETH raised</span>
-                          <span className="text-muted-foreground">of {formatEthAmount(campaign.goal)} ETH goal</span>
-                        </div>
-                        <Progress
-                          value={(parseFloat(campaign.raised) / parseFloat(campaign.goal)) * 100}
-                          className="h-2"
-                        />
-                      </div>
-                      {campaign.milestones && campaign.milestones.length > 0 && (
-                        <div className="mt-6">
-                          <h4 className="text-sm font-medium text-foreground mb-3">Milestones</h4>
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                            {campaign.milestones.map((milestone, index) => (
-                              <div
-                                key={index}
-                                className={`p-3 rounded-lg text-center ${milestone.status === "completed"
-                                    ? "bg-emerald-950/20 text-emerald-400 border border-emerald-800/50"
-                                    : "bg-card/50 text-muted-foreground border border-border"
-                                  }`}
-                              >
-                                <div className="font-medium text-xs mb-1">{milestone.title}</div>
-                                <div className="text-sm">{formatEthAmount(milestone.amount)} ETH</div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
+                    <div key={campaign.id} className="border border-border rounded-lg overflow-hidden hover:bg-card/80 transition-colors">
+                      {/* Display image carousel if images exist */}
+                      {campaign.images && campaign.images.length > 0 && (
+                        <ImageCarousel images={campaign.images} />
                       )}
+                      
+                      <div className="p-6">
+                        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-xl text-foreground">{campaign.title}</h3>
+                            <p className="text-muted-foreground mt-1 line-clamp-2">{campaign.description}</p>
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
+                              <div className="flex items-center">
+                                <Users className="mr-1 h-4 w-4" />
+                                <span>{campaign.donors} donors</span>
+                              </div>
+                              <div className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
+                                {campaign.state === 0 ? "Active" : campaign.state === 1 ? "Completed" : "Inactive"}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex gap-3">
+                            <Link href={`/organizations/campaigns/${campaign.id}`}>
+                              <Button variant="outline" size="sm">
+                                View Details
+                              </Button>
+                            </Link>
+                            <Link href={`/organizations/campaigns/${campaign.id}/edit`}>
+                              <Button variant="outline" size="sm">
+                                Edit
+                              </Button>
+                            </Link>
+                          </div>
+                        </div>
+                        <div className="mt-4 space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="font-medium text-foreground">{formatEthAmount(campaign.raised)} ETH raised</span>
+                            <span className="text-muted-foreground">of {formatEthAmount(campaign.goal)} ETH goal</span>
+                          </div>
+                          <Progress
+                            value={(parseFloat(campaign.raised) / parseFloat(campaign.goal)) * 100}
+                            className="h-2"
+                          />
+                        </div>
+                        {campaign.milestones && campaign.milestones.length > 0 && (
+                          <div className="mt-6">
+                            <h4 className="text-sm font-medium text-foreground mb-3">Milestones</h4>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                              {campaign.milestones.map((milestone, index) => (
+                                <div
+                                  key={index}
+                                  className={`p-3 rounded-lg text-center ${milestone.status === "completed"
+                                      ? "bg-emerald-950/20 text-emerald-400 border border-emerald-800/50"
+                                      : "bg-card/50 text-muted-foreground border border-border"
+                                    }`}
+                                >
+                                  <div className="font-medium text-xs mb-1">{milestone.title}</div>
+                                  <div className="text-sm">{formatEthAmount(milestone.amount)} ETH</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
