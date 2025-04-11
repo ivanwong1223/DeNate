@@ -31,8 +31,8 @@ DeNate is a cutting-edge **blockchain-based** platform that revolutionizes **don
 ---
 
 ## **📜 Smart Contract Details**
-- **CharityCentral Contract Address:** `0xeF4A0ac89e9079731567B3902277d88bb0742c00`  
-  🔗 [View on ScrollScan](https://sepolia.scrollscan.com/address/0xeF4A0ac89e9079731567B3902277d88bb0742c00)  
+- **CharityCentral Contract Address:** `0x9D77E4ECeA7763cB826BF90E2226cB666bc04B66`  
+  🔗 [View on ScrollScan](https://sepolia.scrollscan.com/address/0x9D77E4ECeA7763cB826BF90E2226cB666bc04B66)  
 - **NFT Contract Address:** `0xBf552564Bed5f64ed9C4499E2fB6ad7C28BA386a`  
   🔗 [View on ScrollScan](https://sepolia.scrollscan.com/address/0xBf552564Bed5f64ed9C4499E2fB6ad7C28BA386a)  
 - **CampaignAutomationHandler Contract Address:** `0x091F21BB78b03540027e80e800CB6D085B7dE5bf`  
