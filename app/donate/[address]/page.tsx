@@ -10,10 +10,18 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Heart, Clock, Users, Share2, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
+import { Heart, Clock, Users, Share2, ExternalLink, ChevronLeft, ChevronRight, Trophy } from "lucide-react";
 import { ethers } from "ethers";
 import { charityCampaigns_ABI } from "@/config/contractABI";
 import axios from "axios";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface Campaign {
   address: string;
@@ -41,6 +49,13 @@ interface Donor {
   totalDonated: string;
   isTopDonor: boolean;
   date: string;
+}
+
+interface LeaderboardDonor {
+  address: string;
+  totalDonated: string;
+  rank: number;
+  name?: string;
 }
 
 const ImageCarousel = ({ images }: { images: string[] }) => {
@@ -152,9 +167,11 @@ export default function CampaignDetailPage({ params }: { params: { address: stri
   const [donationError, setDonationError] = useState<string | null>(null);
   const [organizations, setOrganizations] = useState<any[]>([]);
   const [imageCarouselImages, setImageCarouselImages] = useState<string[]>([]);
+  const [leaderboardDonors, setLeaderboardDonors] = useState<LeaderboardDonor[]>([]);
+  const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
 
   const router = useRouter();
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
 
   // Fetch campaign details, milestones, and donors
   const fetchCampaignData = async () => {
@@ -287,9 +304,73 @@ export default function CampaignDetailPage({ params }: { params: { address: stri
     }
   };
 
+  // Fetch campaign leaderboard data
+  const fetchLeaderboardData = async () => {
+    setIsLoadingLeaderboard(true);
+    try {
+      const response = await fetch(
+        'https://api.studio.thegraph.com/query/105145/denate/version/latest',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            query: `
+            query CampaignLeaderboard($campaignId: ID!) {
+              campaign(id: $campaignId) {
+                donors(orderBy: totalDonated, orderDirection: desc) {
+                  donor {
+                    address
+                  }
+                  totalDonated
+                  rank
+                }
+              }
+            }
+          `,
+            variables: {
+              campaignId: campaignAddress.toLowerCase(),
+            },
+          }),
+        }
+      );
+
+      const result = await response.json();
+      
+      if (result.data?.campaign?.donors) {
+        const donorsData = result.data.campaign.donors.map((item: any) => {
+          const donationInWei = BigInt(item.totalDonated);
+          return {
+            address: item.donor.address,
+            totalDonated: ethers.formatEther(donationInWei),
+            rank: item.rank
+          };
+        });
+        
+        const donorsWithNames = await fetchDonorNames(donorsData.map((d: any) => d.address));
+        
+        const enrichedDonors = donorsData.map((donor: any) => {
+          const matchingDonor = donorsWithNames.find(d => d.address.toLowerCase() === donor.address.toLowerCase());
+          return {
+            ...donor,
+            name: matchingDonor?.name || "Anonymous",
+          };
+        });
+        
+        setLeaderboardDonors(enrichedDonors);
+      }
+    } catch (error) {
+      console.error("Error fetching leaderboard data:", error);
+    } finally {
+      setIsLoadingLeaderboard(false);
+    }
+  };
+
   useEffect(() => {
     if (campaignAddress) {
       fetchCampaignData();
+      fetchLeaderboardData();
     }
   }, [campaignAddress]);
 
@@ -383,6 +464,19 @@ export default function CampaignDetailPage({ params }: { params: { address: stri
     
     if (goalValue <= 0) return 0;
     return Math.min((donatedValue / goalValue) * 100, 100);
+  };
+
+  const formatAddress = (address: string) => {
+    return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+  };
+
+  const formatDonation = (amount: string) => {
+    const value = parseFloat(amount);
+    return value.toFixed(6);
+  };
+
+  const isCurrentUserAddress = (donorAddress: string) => {
+    return isConnected && address && donorAddress.toLowerCase() === address.toLowerCase();
   };
 
   return (
@@ -590,32 +684,95 @@ export default function CampaignDetailPage({ params }: { params: { address: stri
               </div>
             </TabsContent>
             <TabsContent value="donors" className="pt-6">
-              <div className="space-y-4">
-                <h2 className="text-2xl font-bold">Recent Donors</h2>
-                <div className="rounded-lg border">
-                  <div className="p-4 grid grid-cols-3 font-medium">
-                    <div>Donor</div>
-                    <div className="text-center">Amount</div>
-                    <div className="text-right">Date</div>
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-bold">Recent Donors</h2>
+                  <div className="rounded-lg border mt-4">
+                    <div className="p-4 grid grid-cols-3 font-medium">
+                      <div>Donor</div>
+                      <div className="text-center">Amount</div>
+                      <div className="text-right">Date</div>
+                    </div>
+                    <div className="divide-y">
+                      {donorsData.slice(0, 5).map((donor, index) => (
+                        <div key={index} className="p-4 grid grid-cols-3">
+                          <div>{donor.donorName}</div>
+                          <div className="text-center">{donor.totalDonated} ETH</div>
+                          <div className="text-right">{donor.date}</div>
+                        </div>
+                      ))}
+                      {donorsData.length === 0 && (
+                        <div className="p-4 text-center text-muted-foreground">No donors yet.</div>
+                      )}
+                    </div>
                   </div>
-                  <div className="divide-y">
-                    {donorsData.slice(0, 5).map((donor, index) => ( // Show top 5 recent donors
-                      <div key={index} className="p-4 grid grid-cols-3">
-                        <div>{donor.donorName}</div>
-                        <div className="text-center">{donor.totalDonated} ETH</div>
-                        <div className="text-right">{donor.date}</div>
-                      </div>
-                    ))}
-                    {donorsData.length === 0 && (
-                      <div className="p-4 text-center text-muted-foreground">No donors yet.</div>
-                    )}
-                  </div>
+                  {donorsData.length > 5 && (
+                    <div className="flex justify-center mt-4">
+                      <Button variant="outline">View All Donors</Button>
+                    </div>
+                  )}
                 </div>
-                {donorsData.length > 5 && (
-                  <div className="flex justify-center">
-                    <Button variant="outline">View All Donors</Button>
-                  </div>
-                )}
+                
+                <div>
+                  <h2 className="text-2xl font-bold flex items-center">
+                    <Trophy className="mr-2 h-5 w-5 text-yellow-500" />
+                    Campaign Leaderboard
+                  </h2>
+                  <p className="text-muted-foreground mb-4">Top donors for this campaign</p>
+                  
+                  {isLoadingLeaderboard ? (
+                    <div className="text-center py-8">Loading leaderboard data...</div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[100px]">Rank</TableHead>
+                          <TableHead>Donor</TableHead>
+                          <TableHead className="text-right">Total Donated</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {leaderboardDonors.length > 0 ? (
+                          leaderboardDonors.map((donor, index) => {
+                            const isCurrentUser = isConnected && address && donor.address.toLowerCase() === address.toLowerCase();
+                            
+                            return (
+                              <TableRow key={index} className={isCurrentUser ? "bg-green-900/20" : ""}>
+                                <TableCell className="font-medium">
+                                  {index < 3 ? (
+                                    <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full 
+                                      ${index === 0 ? 'bg-yellow-100 text-yellow-800' : 
+                                        index === 1 ? 'bg-gray-100 text-gray-800' : 
+                                          'bg-amber-100 text-amber-800'}`}>
+                                      {index + 1}
+                                    </span>
+                                  ) : (
+                                    index + 1
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex flex-col">
+                                    <span className={isCurrentUser ? "text-green-400 font-medium" : ""}>
+                                      {donor.name || "Anonymous"}{isCurrentUser ? " (You)" : ""}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">{formatAddress(donor.address)}</span>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-right font-medium">{formatDonation(donor.totalDonated)} ETH</TableCell>
+                              </TableRow>
+                            );
+                          })
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={3} className="text-center py-6 text-muted-foreground">
+                              No leaderboard data available
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  )}
+                </div>
               </div>
             </TabsContent>
           </Tabs>
