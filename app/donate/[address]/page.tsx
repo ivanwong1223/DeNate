@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { use } from "react";
 import { useRouter } from "next/navigation";
 import { useAccount } from "wagmi";
 import Image from "next/image";
@@ -139,9 +140,9 @@ const fetchIPFSData = async (uri: string) => {
   }
 };
 
-export default function CampaignDetailPage({ params }: { params: { address: string } }) {
-
-  const campaignAddress = params.address;
+export default function CampaignDetailPage({ params }: { params: Promise<{ address: string }> }) {
+  const resolvedParams = use(params);
+  const campaignAddress = resolvedParams.address;
   
   const [campaignDetails, setCampaignDetails] = useState<Campaign>({
     address: '',
