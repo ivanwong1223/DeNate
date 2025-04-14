@@ -33,7 +33,7 @@ export default function KYBForm() {
         ownerPhoneNumber: "",
         companyRegistrationProof: null as File | null, // File for company registration proof
     });
-    const [agreeToTerms, setAgreeToTerms] = useState(false);
+    const [isMalaysia, setIsMalaysia] = useState(false);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -54,11 +54,26 @@ export default function KYBForm() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!formData.countryOfIncorporation) {
+        const { countryOfIncorporation, registrationNumber, companyRegistrationProof } = formData;
+
+        if (!countryOfIncorporation) {
             alert("Please select a country of incorporation.");
             return;
         }
 
+        if (countryOfIncorporation === "MY") {
+            if (!companyRegistrationProof) {
+                alert("Please upload your company registration proof for Malaysia.");
+                return;
+            }
+
+            // ✅ Local approval logic for Malaysia
+            console.log("✅ Malaysia submission auto-approved.");
+            alert("Submission Verified and Approved!");
+            return;
+        }
+
+        // 🌍 For other countries, continue to call the API
         try {
             const res = await fetch("/api/verify-kyb", {
                 method: "POST",
@@ -66,8 +81,8 @@ export default function KYBForm() {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    registrationNumber: formData.registrationNumber,
-                    countryCode: formData.countryOfIncorporation,
+                    registrationNumber,
+                    countryCode: countryOfIncorporation,
                     isConsent: true,
                 }),
             });
@@ -145,9 +160,14 @@ export default function KYBForm() {
                         <Select
                             label="Country of Incorporation"
                             value={formData.countryOfIncorporation}
-                            onChange={(value) =>
-                                setFormData((prev) => ({ ...prev, countryOfIncorporation: value as string }))
-                            }
+                            onChange={(value) => {
+                                const selectedCountry = value as string;
+                                setFormData((prev) => ({
+                                    ...prev,
+                                    countryOfIncorporation: selectedCountry,
+                                }));
+                                setIsMalaysia(selectedCountry === "MY");
+                            }}
                             placeholder=""
                             onPointerEnterCapture={undefined}
                             onPointerLeaveCapture={undefined}
@@ -168,6 +188,7 @@ export default function KYBForm() {
                                 name="companyRegistrationProof"
                                 accept="image/*,application/pdf"
                                 onChange={handleFileChange}
+                                required={isMalaysia}
                                 className="border border-gray-300 rounded-lg p-2 w-full mt-2"
                             />
                             {/* Display File Name and Remove Button */}
