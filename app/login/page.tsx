@@ -169,7 +169,7 @@ export default function LoginPage() {
               >
                 Don’t have an account?{" "}
                 <Link
-                  href="/register"
+                  href="/kyb-form"
                   className="text-blue-500 font-medium hover:underline"
                 >
                   Register your organization

@@ -9,12 +9,13 @@ import AboutCard from "@/components/about-card";
 import React, { useEffect, useState } from "react";
 import TestimonialCarousel from "@/components/testimonial-carousel";
 import { getLeaderboard } from "@/lib/mockData";
+import ChatBot from "@/components/chatbot";
 
 // Helper function to format WEI to ETH with proper decimal display
 function formatToEth(wei: number): string {
   // Convert wei to ETH (1 ETH = 10^18 wei)
   const ethValue = wei / 1000000000000000000;
-  
+
   // Use toLocaleString to ensure it doesn't use scientific notation
   // If the value is very small (less than 0.0001), show more decimals
   if (ethValue < 0.0001 && ethValue > 0) {
@@ -22,11 +23,11 @@ function formatToEth(wei: number): string {
     const fullDecimalStr = ethValue.toFixed(18).replace(/\.?0+$/, "");
     return fullDecimalStr + " ETH";
   }
-  
+
   // For regular values, show 4 decimals
-  return ethValue.toLocaleString('fullwide', { 
+  return ethValue.toLocaleString('fullwide', {
     useGrouping: false,
-    maximumFractionDigits: 4 
+    maximumFractionDigits: 4
   }) + " ETH";
 }
 
@@ -93,7 +94,7 @@ const EVENT_INFO = [
 export default function Home() {
   const [topDonors, setTopDonors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   useEffect(() => {
     const fetchLeaderboard = async () => {
       try {
@@ -109,7 +110,7 @@ export default function Home() {
 
     fetchLeaderboard();
   }, []);
-  
+
   return (
     <div className="bg-white">
       <div className="relative min-h-screen w-full bg-[url('/landing-page2-bg2.jpg')] bg-cover bg-no-repeat">
@@ -127,12 +128,12 @@ export default function Home() {
               variant="lead"
               color="white"
               className="mt-1 mb-12 w-full md:max-w-full lg:max-w-2xl"
-              placeholder={null} 
-              onPointerEnterCapture={undefined} 
+              placeholder={null}
+              onPointerEnterCapture={undefined}
               onPointerLeaveCapture={undefined}
             >
               Join our mission to increase accountability, and
-              efficiency in charitable giving through blockchain technology. 
+              efficiency in charitable giving through blockchain technology.
             </Typography>
             <div className="flex items-center gap-4">
               <Button variant="gradient" color="white" className="flex items-center" placeholder={null} onPointerEnterCapture={undefined} onPointerLeaveCapture={undefined}>
@@ -198,7 +199,7 @@ export default function Home() {
           </div>
         </div>
       </section>
-      
+
       {/* Testimonials Section */}
       <section className="bg-gray-50 py-12">
         <TestimonialCarousel />
@@ -207,25 +208,25 @@ export default function Home() {
       {/* Leaderboard Preview Section */}
       <section className="w-full py-12 md:py-24 lg:py-32 relative">
         {/* Background Image with Overlay */}
-        <div 
+        <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: "url('/top-contributor.png')" }}
         >
           <div className="absolute inset-0 bg-gray-900/80" />
         </div>
-        
+
         <div className="container px-4 md:px-6 relative z-10">
           <div className="flex flex-col items-center justify-center space-y-4 text-center">
             <div className="space-y-2">
               <Typography variant="h3" color="white" className="mb-2" placeholder={null} onPointerEnterCapture={undefined} onPointerLeaveCapture={undefined}>
                 Top Contributors
               </Typography>
-              <Typography 
-                variant="lead" 
-                color="white" 
-                className="max-w-[900px] opacity-80" 
-                placeholder={null} 
-                onPointerEnterCapture={undefined} 
+              <Typography
+                variant="lead"
+                color="white"
+                className="max-w-[900px] opacity-80"
+                placeholder={null}
+                onPointerEnterCapture={undefined}
                 onPointerLeaveCapture={undefined}
               >
                 Recognizing those who are making the biggest impact through their generous donations.
@@ -257,8 +258,8 @@ export default function Home() {
                         </div>
                         <div className="flex items-center space-x-3">
                           {donor.avatar ? (
-                            <Image 
-                              src={donor.avatar} 
+                            <Image
+                              src={donor.avatar}
                               alt={donor.name || "Anonymous"}
                               width={36}
                               height={36}
@@ -280,12 +281,12 @@ export default function Home() {
             )}
             <div className="flex justify-center">
               <Link href="/leaderboard">
-                <Button 
-                  variant="text" 
-                  color="white" 
-                  className="flex items-center" 
-                  placeholder={null} 
-                  onPointerEnterCapture={undefined} 
+                <Button
+                  variant="text"
+                  color="white"
+                  className="flex items-center"
+                  placeholder={null}
+                  onPointerEnterCapture={undefined}
                   onPointerLeaveCapture={undefined}
                 >
                   View Full Leaderboard <ArrowRight className="ml-2 h-4 w-4" />
@@ -295,7 +296,10 @@ export default function Home() {
           </div>
         </div>
       </section>
-      
+      {/* Floating ChatBot */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <ChatBot />
+      </div>
     </div>
 
   )

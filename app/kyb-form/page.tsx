@@ -34,6 +34,7 @@ export default function KYBForm() {
         companyRegistrationProof: null as File | null, // File for company registration proof
     });
     const [isMalaysia, setIsMalaysia] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -53,27 +54,34 @@ export default function KYBForm() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setIsLoading(true); // start loading
 
         const { countryOfIncorporation, registrationNumber, companyRegistrationProof } = formData;
 
         if (!countryOfIncorporation) {
             alert("Please select a country of incorporation.");
+            setIsLoading(false);
             return;
         }
 
         if (countryOfIncorporation === "MY") {
             if (!companyRegistrationProof) {
                 alert("Please upload your company registration proof for Malaysia.");
+                setIsLoading(false);
                 return;
             }
 
-            // ✅ Local approval logic for Malaysia
-            console.log("✅ Malaysia submission auto-approved.");
-            alert("Submission Verified and Approved!");
+            // ✅ Simulate 5-second delay
+            setTimeout(() => {
+                console.log("✅ Malaysia submission auto-approved.");
+                alert("Submission Verified and Approved!");
+                setIsLoading(false); // stop loading
+                router.push("/register");
+            }, 5000);
             return;
         }
 
-        // 🌍 For other countries, continue to call the API
+        // 🌍 For other countries
         try {
             const res = await fetch("/api/verify-kyb", {
                 method: "POST",
@@ -91,6 +99,8 @@ export default function KYBForm() {
             console.log("✅ KYB result:", result);
         } catch (error) {
             console.error("❌ KYB submission error:", error);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -135,7 +145,7 @@ export default function KYBForm() {
                         onPointerEnterCapture={undefined}
                         onPointerLeaveCapture={undefined}
                     >
-                        Provide the necessary details to verify your organization
+                        Verify your organization by providing the required details before creating your account
                     </Typography>
                 </div>
 
@@ -172,11 +182,8 @@ export default function KYBForm() {
                             onPointerEnterCapture={undefined}
                             onPointerLeaveCapture={undefined}
                         >
-                            <Option value="NG">Nigeria</Option>
                             <Option value="MY">Malaysia</Option>
-                            <Option value="SG">Singapore</Option>
-                            <Option value="US">United States</Option>
-                            <Option value="GB">United Kingdom</Option>
+                            {/* <Option value="NG">Nigeria</Option> */}
                         </Select>
 
                         {/* Company Registration Proof File Upload */}
@@ -213,12 +220,14 @@ export default function KYBForm() {
                         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                             <Button
                                 type="submit"
-                                className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-3 transition-all"
+                                className={`w-full rounded-lg py-3 transition-all ${isLoading ? "bg-blue-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+                                    }`}
+                                disabled={isLoading}
                                 placeholder={null}
                                 onPointerEnterCapture={undefined}
                                 onPointerLeaveCapture={undefined}
                             >
-                                Submit Form
+                                {isLoading ? "Processing..." : "Submit Form"}
                             </Button>
                         </motion.div>
 
