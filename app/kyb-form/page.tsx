@@ -71,13 +71,31 @@ export default function KYBForm() {
                 return;
             }
 
-            // ✅ Simulate 5-second delay
-            setTimeout(() => {
-                console.log("✅ Malaysia submission auto-approved.");
-                alert("Submission Verified and Approved!");
-                setIsLoading(false); // stop loading
-                router.push("/register");
-            }, 5000);
+            const ocrForm = new FormData();
+            ocrForm.append("file", companyRegistrationProof);
+            ocrForm.append("registrationNumber", registrationNumber); // Pass reg number too
+
+            try {
+                const ocrRes = await fetch("/api/ocr", {
+                    method: "POST",
+                    body: ocrForm,
+                });
+
+                const { match, extractedText } = await ocrRes.json();
+
+                if (match) {
+                    alert("Submission Verified and Approved!");
+                    router.push("/register");
+                } else {
+                    alert("❌ Invalid organization information. Please Try Again.");
+                }
+            } catch (error) {
+                console.error("❌ OCR error:", error);
+                alert("Failed to verify document with OCR.");
+            } finally {
+                setIsLoading(false);
+            }
+
             return;
         }
 
