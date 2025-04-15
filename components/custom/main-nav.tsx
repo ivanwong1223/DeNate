@@ -152,7 +152,7 @@ export function MainNav() {
                                         Login
                                     </Button>
                                 </Link>
-                                <Link href="/register">
+                                <Link href="/kyb-form">
                                     <Button color="gray">Sign Up</Button>
                                 </Link>
                             </>
