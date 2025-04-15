@@ -13,26 +13,43 @@ export default function ChatBotToggle() {
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
     // Predefined list of keywords and their corresponding responses
-    const keywordResponses = {
-        "DeNate": "DeNate is a platform that helps connect donors with charitable organizations. We facilitate easy and secure donations to various causes.",
-        "campaign": "You can view the list of active campaigns by visiting the 'Campaigns' section of our website. Check out the ongoing campaigns and their details.",
-        "donation": "Your donations go to various causes. The funds are managed by the organizations hosting the campaigns, ensuring transparency and proper allocation.",
-        "donor": "To become a donor, simply sign up on our platform and select the campaign you wish to support. You can donate easily using various payment methods.",
-        "organization": "To register as an organization and host a campaign, you need to create an account on our platform. After that, you can submit a campaign proposal for approval."
-    };
+    const keywordResponses = [
+        {
+            keywords: ["DeNate", "about denate", "what is this website about"],
+            response: "DeNate is a platform that helps connect donors with charitable organizations. We facilitate easy and secure donations to various causes."
+        },
+        {
+            keywords: ["campaign", "campaigns", "see campaigns", "active campaign"],
+            response: "You can view the list of active campaigns by visiting the 'Donate' section of our website. Check out the ongoing campaigns and their details."
+        },
+        {
+            keywords: ["donation", "donate", "give money", "money goes to", "money go"],
+            response: "Your donations go to various causes. The funds are managed by the organizations hosting the campaigns, ensuring transparency and proper allocation."
+        },
+        {
+            keywords: ["donor", "become a donor", "how to donate"],
+            response: `To become a donor, follow these steps:\n1. Log in to our platform and create your donor profile.\n2. Once logged in, you’ll be redirected to your dashboard.\n3. Browse and view all active donation campaigns.\n4. Select a campaign you’d like to support.\n5. Follow the on-screen instructions to complete your donation.\n\nThank you for making a difference! 💙`
+        },
+        {
+            keywords: ["organization", "register org", "charity organization"],
+            response: `To register your organization and host a campaign, follow these steps:\n1. Click the 'Sign Up' button and choose 'Register as Organization'.\n2. Fill in your organization details and upload the required verification documents.\n3. Once verified, your organization account will be activated.\n4. Log in and go to your dashboard.\n5. Click 'Create Campaign' and fill in the campaign form.\n6. Submit the form — your campaign will be reviewed and published shortly.\n\nWe’re excited to have you onboard! 🤝`
+        },
+        {
+            keywords: ["contact", "support", "help", "need help", "message", "inquiry", "ask"],
+            response: "You may reach out to us via email: admin@denate.com or drop us a message at our telegram: @denate_admin."
+        }
+    ];
 
     const handleMessageMatch = (input: string) => {
-        // Check if any keyword matches in the input
-        const matchedKeyword = Object.keys(keywordResponses).find((keyword) =>
-            input.toLowerCase().includes(keyword.toLowerCase())
-        );
+        const normalizedInput = input.toLowerCase();
 
-        if (matchedKeyword) {
-            // Type assertion to make sure matchedKeyword is a valid key
-            return keywordResponses[matchedKeyword as keyof typeof keywordResponses];
-        } else {
-            return null;
+        for (const entry of keywordResponses) {
+            if (entry.keywords.some(keyword => normalizedInput.includes(keyword.toLowerCase()))) {
+                return entry.response;
+            }
         }
+
+        return null;
     };
 
     const sendMessage = () => {
@@ -138,7 +155,9 @@ export default function ChatBotToggle() {
                                                 <span>.</span>
                                             </div>
                                         ) : (
-                                            msg.text
+                                            msg.text.split('\n').map((line, index) => (
+                                                <p key={index} className="mb-1">{line}</p>
+                                            ))
                                         )}
                                     </div>
                                 </motion.div>

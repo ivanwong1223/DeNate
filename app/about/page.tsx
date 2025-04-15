@@ -23,8 +23,8 @@ export default function AboutPage() {
               variant="lead"
               color="white"
               className="mt-1 mb-12 w-full md:max-w-full lg:max-w-2xl"
-              placeholder={null} 
-              onPointerEnterCapture={undefined} 
+              placeholder={null}
+              onPointerEnterCapture={undefined}
               onPointerLeaveCapture={undefined}
             >
               DeNate is dedicated to improving trust, transparency, and efficiency in charitable giving
@@ -45,7 +45,7 @@ export default function AboutPage() {
               Our Story
             </Typography>
           </div>
-          
+
           <div className="grid gap-8 lg:grid-cols-2 items-center">
             <div className="relative rounded-xl overflow-hidden shadow-2xl group">
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent z-10"></div>
@@ -65,7 +65,7 @@ export default function AboutPage() {
                 </Typography>
               </div>
             </div>
-            
+
             <div className="space-y-6">
               <div className="bg-gray-800 rounded-xl p-6 shadow-lg border-l-4 border-blue-500">
                 <div className="flex items-start mb-4">
@@ -84,7 +84,7 @@ export default function AboutPage() {
                   </div>
                 </div>
               </div>
-              
+
               <div className="bg-gray-800 rounded-xl p-6 shadow-lg border-l-4 border-green-500">
                 <div className="flex items-start mb-4">
                   <div className="bg-green-900/50 p-3 rounded-lg mr-4">
@@ -102,7 +102,7 @@ export default function AboutPage() {
                   </div>
                 </div>
               </div>
-              
+
               <div className="bg-gray-800 rounded-xl p-6 shadow-lg border-l-4 border-purple-500">
                 <div className="flex items-start mb-4">
                   <div className="bg-purple-900/50 p-3 rounded-lg mr-4">
@@ -157,7 +157,7 @@ export default function AboutPage() {
                 </Typography>
               </CardBody>
             </Card>
-            
+
             <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 bg-gray-800" placeholder={null} onPointerEnterCapture={undefined} onPointerLeaveCapture={undefined}>
               <CardHeader floated={false} className="h-16 flex items-center justify-center bg-red-900/50" placeholder={null} onPointerEnterCapture={undefined} onPointerLeaveCapture={undefined}>
                 <Heart className="h-10 w-10 text-red-400" />
@@ -172,7 +172,7 @@ export default function AboutPage() {
                 </Typography>
               </CardBody>
             </Card>
-            
+
             <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 bg-gray-800" placeholder={null} onPointerEnterCapture={undefined} onPointerLeaveCapture={undefined}>
               <CardHeader floated={false} className="h-16 flex items-center justify-center bg-purple-900/50" placeholder={null} onPointerEnterCapture={undefined} onPointerLeaveCapture={undefined}>
                 <Users className="h-10 w-10 text-purple-400" />
@@ -187,7 +187,7 @@ export default function AboutPage() {
                 </Typography>
               </CardBody>
             </Card>
-            
+
             <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 bg-gray-800" placeholder={null} onPointerEnterCapture={undefined} onPointerLeaveCapture={undefined}>
               <CardHeader floated={false} className="h-16 flex items-center justify-center bg-green-900/50" placeholder={null} onPointerEnterCapture={undefined} onPointerLeaveCapture={undefined}>
                 <BarChart3 className="h-10 w-10 text-green-400" />
@@ -202,7 +202,7 @@ export default function AboutPage() {
                 </Typography>
               </CardBody>
             </Card>
-            
+
             <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 bg-gray-800" placeholder={null} onPointerEnterCapture={undefined} onPointerLeaveCapture={undefined}>
               <CardHeader floated={false} className="h-16 flex items-center justify-center bg-yellow-900/50" placeholder={null} onPointerEnterCapture={undefined} onPointerLeaveCapture={undefined}>
                 <Zap className="h-10 w-10 text-yellow-400" />
@@ -217,7 +217,7 @@ export default function AboutPage() {
                 </Typography>
               </CardBody>
             </Card>
-            
+
             <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 bg-gray-800" placeholder={null} onPointerEnterCapture={undefined} onPointerLeaveCapture={undefined}>
               <CardHeader floated={false} className="h-16 flex items-center justify-center bg-cyan-900/50" placeholder={null} onPointerEnterCapture={undefined} onPointerLeaveCapture={undefined}>
                 <Globe className="h-10 w-10 text-cyan-400" />
@@ -298,8 +298,8 @@ export default function AboutPage() {
               variant="lead"
               color="white"
               className="mt-1 mb-12 w-full md:max-w-full lg:max-w-2xl opacity-90"
-              placeholder={null} 
-              onPointerEnterCapture={undefined} 
+              placeholder={null}
+              onPointerEnterCapture={undefined}
               onPointerLeaveCapture={undefined}
             >
               Whether you're looking to donate or register your organization, we're here to help you make a
@@ -311,7 +311,7 @@ export default function AboutPage() {
                   Donate Now <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
-              <Link href="/register">
+              <Link href="/kyb-form">
                 <Button variant="outlined" className="rounded-full bg-transparent border-white text-white hover:bg-white/10" placeholder={null} onPointerEnterCapture={undefined} onPointerLeaveCapture={undefined}>
                   Register Organization
                 </Button>

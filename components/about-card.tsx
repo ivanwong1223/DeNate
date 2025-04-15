@@ -1,9 +1,9 @@
 import {
-    Card,
-    CardBody,
-    Typography,
-    Button,
-  } from "@material-tailwind/react";
+  Card,
+  CardBody,
+  Typography,
+  Button,
+} from "@material-tailwind/react";
 import Link from "next/link";
 import React from "react";
 
@@ -15,14 +15,14 @@ interface AboutCardProp {
 
 export function AboutCard({ title, description, subTitle }: AboutCardProp) {
   const buttonText =
-    title === "For Donors" ? "Become a Donor" : 
-    title === "For Organizations" ? "Register Organization" : 
-    title === "Get to know us!" ? "About Us" : "About Us";
+    title === "For Donors" ? "Become a Donor" :
+      title === "For Organizations" ? "Register Organization" :
+        title === "Get to know us!" ? "About Us" : "About Us";
 
   const buttonLink =
-    title === "For Donors" ? "/donors/register" : 
-    title === "For Organizations" ? "/organizations/register" :
-    title === "Get to know us!" ? "/about" : "/about";
+    title === "For Donors" ? "/login" :
+      title === "For Organizations" ? "/kyb-form" :
+        title === "Get to know us!" ? "/about" : "/about";
 
   // Determine background image based on title
   const getBackgroundStyle = () => {
@@ -53,15 +53,15 @@ export function AboutCard({ title, description, subTitle }: AboutCardProp) {
 
   return (
     <Card shadow={false} placeholder={null} onPointerEnterCapture={undefined} onPointerLeaveCapture={undefined}>
-      <CardBody 
-        className="h-[453px] p-5 flex flex-col justify-center items-center rounded-2xl" 
+      <CardBody
+        className="h-[453px] p-5 flex flex-col justify-center items-center rounded-2xl"
         style={getBackgroundStyle()}
-        placeholder={null} 
-        onPointerEnterCapture={undefined} 
+        placeholder={null}
+        onPointerEnterCapture={undefined}
         onPointerLeaveCapture={undefined}
       >
         <div className="absolute inset-0 bg-gray-900/70 rounded-2xl" />
-        
+
         <div className="relative z-10 flex flex-col items-center">
           <Typography variant="h6" className="mb-4 text-center" color="white" placeholder={null} onPointerEnterCapture={undefined} onPointerLeaveCapture={undefined}>
             {subTitle}

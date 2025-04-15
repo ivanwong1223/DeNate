@@ -136,12 +136,16 @@ export default function Home() {
               efficiency in charitable giving through blockchain technology.
             </Typography>
             <div className="flex items-center gap-4">
-              <Button variant="gradient" color="white" className="flex items-center" placeholder={null} onPointerEnterCapture={undefined} onPointerLeaveCapture={undefined}>
-                Donate Now <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-              <Button variant="outlined" className="rounded-full bg-white p-4" placeholder={null} onPointerEnterCapture={undefined} onPointerLeaveCapture={undefined}>
-                Register Organization
-              </Button>
+              <Link href="/login">
+                <Button variant="gradient" color="white" className="flex items-center" placeholder={null} onPointerEnterCapture={undefined} onPointerLeaveCapture={undefined}>
+                  Donate Now <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+              <Link href="/kyb-form">
+                <Button variant="outlined" className="rounded-full bg-white p-4" placeholder={null} onPointerEnterCapture={undefined} onPointerLeaveCapture={undefined}>
+                  Register Organization
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
