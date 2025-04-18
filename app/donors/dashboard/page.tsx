@@ -304,7 +304,7 @@ export default function DonorDashboardPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Active Campaigns</CardTitle>
-                <CardDescription>Campaigns you're currently supporting</CardDescription>
+                <CardDescription>Campaigns that are currently active</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -354,7 +354,6 @@ export default function DonorDashboardPage() {
                       <div>
                         <h3 className="font-medium">{donation.campaignTitle}</h3>
                         <p className="text-sm text-muted-foreground">{donation.organizationName}</p>
-                        <p className="text-xs text-muted-foreground">{donation.date}</p>
                       </div>
                       <div className="text-right">
                         <p className="font-medium">{donation.amount} ETH</p>
@@ -366,14 +365,6 @@ export default function DonorDashboardPage() {
                   ))}
                 </div>
               </CardContent>
-              <CardFooter>
-                <Link href="/donors/history" className="w-full">
-                  <Button variant="outline" className="w-full">
-                    <History className="mr-2 h-4 w-4" />
-                    View Full History
-                  </Button>
-                </Link>
-              </CardFooter>
             </Card>
           </div>
         </div>
