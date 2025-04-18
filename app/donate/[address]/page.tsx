@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Heart, Clock, Users, Share2, ExternalLink, ChevronLeft, ChevronRight, Trophy } from "lucide-react";
+import { Heart, Clock, Users, Share2, ExternalLink, ChevronLeft, ChevronRight, Trophy, ArrowDownCircle, ArrowUpCircle, Copy, Check } from "lucide-react";
 import { ethers } from "ethers";
 import { charityCampaigns_ABI } from "@/config/contractABI";
 import axios from "axios";
@@ -23,6 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Campaign {
   address: string;
@@ -57,6 +58,35 @@ interface LeaderboardDonor {
   totalDonated: string;
   rank: number;
   name?: string;
+}
+
+interface Donation {
+  amount: string;
+  timestamp: string;
+  donor: {
+    address: string;
+  };
+  formattedAmount?: string;
+  formattedDate?: string;
+}
+
+interface FundRelease {
+  amount: string;
+  recipient: string;
+  timestamp: string;
+  milestoneIndex: number;
+  formattedAmount?: string;
+  formattedDate?: string;
+}
+
+interface Transaction {
+  type: 'donation' | 'release';
+  amount: string;
+  timestamp: string;
+  address: string;
+  milestoneIndex?: number;
+  formattedAmount: string;
+  formattedDate: string;
 }
 
 const ImageCarousel = ({ images }: { images: string[] }) => {
@@ -170,6 +200,11 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ addre
   const [imageCarouselImages, setImageCarouselImages] = useState<string[]>([]);
   const [leaderboardDonors, setLeaderboardDonors] = useState<LeaderboardDonor[]>([]);
   const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
+  const [donations, setDonations] = useState<Donation[]>([]);
+  const [fundsReleased, setFundsReleased] = useState<FundRelease[]>([]);
+  const [combinedTransactions, setCombinedTransactions] = useState<Transaction[]>([]);
+  const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
+  const [copiedAddresses, setCopiedAddresses] = useState<{[key: string]: boolean}>({});
 
   const router = useRouter();
   const { isConnected, address } = useAccount();
@@ -226,20 +261,20 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ addre
 
       // Fetch milestones
       try {
-        const milestoneData = await campaignContract.getMilestones();
+      const milestoneData = await campaignContract.getMilestones();
         
         if (!milestoneData || !milestoneData.targets || !milestoneData.reached || !milestoneData.fundsReleased) {
           console.error("Invalid milestone data structure:", milestoneData);
           return;
         }
         
-        const formattedMilestones = {
+      const formattedMilestones = {
           targets: Array.from(milestoneData.targets as bigint[]).map((target: bigint) => ethers.formatEther(target)),
           reached: Array.from(milestoneData.reached as unknown[]).map(Boolean),
           fundsReleased: Array.from(milestoneData.fundsReleased as unknown[]).map(Boolean),
         };
         
-        setMilestones(formattedMilestones);
+      setMilestones(formattedMilestones);
       } catch (error) {
         console.error("Error fetching milestones:", error);
       }
@@ -280,30 +315,30 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ addre
     }
   };
 
-  // Fetch donors
-  const fetchDonorNames = async (addresses: string[]) => {
-    try {
-      const response = await fetch("/api/campaign/get-recent-donors");
-      if (!response.ok) throw new Error("Failed to fetch donor names");
-      const donors = await response.json();
+      // Fetch donors
+      const fetchDonorNames = async (addresses: string[]) => {
+        try {
+          const response = await fetch("/api/campaign/get-recent-donors");
+          if (!response.ok) throw new Error("Failed to fetch donor names");
+          const donors = await response.json();
 
-      const addressToNameMap = donors.reduce((map: Record<string, string>, donor: any) => {
-        map[donor.walletAddress.toLowerCase()] = donor.name || "Anonymous";
-        return map;
-      }, {});
+          const addressToNameMap = donors.reduce((map: Record<string, string>, donor: any) => {
+            map[donor.walletAddress.toLowerCase()] = donor.name || "Anonymous";
+            return map;
+          }, {});
 
-      return addresses.map((address) => ({
-        address,
-        name: addressToNameMap[address.toLowerCase()] || "Anonymous",
-      }));
-    } catch (error) {
-      console.error("Error fetching donor names:", error);
-      return addresses.map((address) => ({
-        address,
-        name: "Anonymous",
-      }));
-    }
-  };
+          return addresses.map((address) => ({
+            address,
+            name: addressToNameMap[address.toLowerCase()] || "Anonymous",
+          }));
+        } catch (error) {
+          console.error("Error fetching donor names:", error);
+          return addresses.map((address) => ({
+            address,
+            name: "Anonymous",
+          }));
+        }
+      };
 
   // Fetch campaign leaderboard data
   const fetchLeaderboardData = async () => {
@@ -368,10 +403,122 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ addre
     }
   };
 
+  // Fetch campaign transaction history
+  const fetchTransactionHistory = async () => {
+    setIsLoadingTransactions(true);
+    try {
+      const response = await fetch(
+        'https://api.studio.thegraph.com/query/105145/denate/version/latest',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            query: `
+            query GetCampaignTransactions($campaignId: ID!) {
+              campaign(id: $campaignId) {
+                name
+                totalDonated
+                charity {
+                  address
+                }
+                
+                donations(orderBy: timestamp, orderDirection: desc) {
+                  amount
+                  timestamp
+                  donor {
+                    address
+                  }
+                }
+                  
+                fundsReleased(orderBy: timestamp, orderDirection: desc) {
+                  amount
+                  recipient
+                  timestamp
+                  milestoneIndex
+                }
+              }
+            }
+            `,
+            variables: {
+              campaignId: campaignAddress.toLowerCase(),
+            },
+          }),
+        }
+      );
+
+      const result = await response.json();
+      
+      if (result.data?.campaign) {
+        const campaignData = result.data.campaign;
+        
+        // Process donations
+        const processedDonations = campaignData.donations.map((donation: any) => {
+          const donationInWei = BigInt(donation.amount);
+          const date = new Date(Number(donation.timestamp) * 1000); // Convert to milliseconds
+          
+          return {
+            ...donation,
+            formattedAmount: ethers.formatEther(donationInWei),
+            formattedDate: date.toLocaleString()
+          };
+        });
+        
+        // Process fund releases
+        const processedReleases = campaignData.fundsReleased.map((release: any) => {
+          const amountInWei = BigInt(release.amount);
+          const date = new Date(Number(release.timestamp) * 1000);
+          
+          return {
+            ...release,
+            formattedAmount: ethers.formatEther(amountInWei),
+            formattedDate: date.toLocaleString()
+          };
+        });
+        
+        // Create combined transactions list
+        const allTransactions: Transaction[] = [
+          ...processedDonations.map((donation: any) => ({
+            type: 'donation',
+            amount: donation.amount,
+            timestamp: donation.timestamp,
+            address: donation.donor.address,
+            formattedAmount: donation.formattedAmount,
+            formattedDate: donation.formattedDate
+          })),
+          ...processedReleases.map((release: any) => ({
+            type: 'release',
+            amount: release.amount,
+            timestamp: release.timestamp,
+            address: release.recipient,
+            milestoneIndex: release.milestoneIndex,
+            formattedAmount: release.formattedAmount,
+            formattedDate: release.formattedDate
+          }))
+        ];
+        
+        // Sort by timestamp descending (most recent first)
+        allTransactions.sort((a, b) => 
+          Number(b.timestamp) - Number(a.timestamp)
+        );
+        
+        setDonations(processedDonations);
+        setFundsReleased(processedReleases);
+        setCombinedTransactions(allTransactions);
+      }
+    } catch (error) {
+      console.error("Error fetching transaction history:", error);
+    } finally {
+      setIsLoadingTransactions(false);
+    }
+  };
+
   useEffect(() => {
     if (campaignAddress) {
-      fetchCampaignData();
+    fetchCampaignData();
       fetchLeaderboardData();
+      fetchTransactionHistory();
     }
   }, [campaignAddress]);
 
@@ -467,6 +614,16 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ addre
     return Math.min((donatedValue / goalValue) * 100, 100);
   };
 
+  const copyToClipboard = (address: string) => {
+    navigator.clipboard.writeText(address)
+      .then(() => {
+        setCopiedAddresses({...copiedAddresses, [address]: true});
+        setTimeout(() => {
+          setCopiedAddresses({...copiedAddresses, [address]: false});
+        }, 2000);
+      });
+  };
+
   const formatAddress = (address: string) => {
     return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
   };
@@ -489,13 +646,13 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ addre
               {imageCarouselImages.length > 0 ? (
                 <ImageCarousel images={imageCarouselImages} />
               ) : (
-                <Image
+              <Image
                   src="/placeholder.svg"
-                  alt={campaignDetails.name}
-                  width={800}
-                  height={400}
-                  className="rounded-lg object-cover w-full aspect-video"
-                />
+                alt={campaignDetails.name}
+                width={800}
+                height={400}
+                className="rounded-lg object-cover w-full aspect-video"
+              />
               )}
             </div>
             <div className="flex flex-col space-y-4">
@@ -594,7 +751,7 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ addre
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="about">About</TabsTrigger>
               <TabsTrigger value="milestones">Milestones</TabsTrigger>
-              <TabsTrigger value="updates">Updates</TabsTrigger>
+              <TabsTrigger value="transactions">Transactions</TabsTrigger>
               <TabsTrigger value="donors">Donors</TabsTrigger>
             </TabsList>
             <TabsContent value="about" className="pt-6">
@@ -677,41 +834,225 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ addre
                 </div>
               </div>
             </TabsContent>
-            <TabsContent value="updates" className="pt-6">
+            <TabsContent value="transactions" className="pt-6">
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-bold">Campaign Transaction History</h2>
+                  <p className="text-muted-foreground mb-4">All financial activity for this campaign</p>
+                  
+                  {isLoadingTransactions ? (
+                    <div className="flex justify-center py-8">
+                      <div className="animate-spin h-10 w-10 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {/* Combined transaction history */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-lg">All Transactions</CardTitle>
+                          <CardDescription>Combined chronological transaction history</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Type</TableHead>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Address</TableHead>
+                                <TableHead className="text-right">Amount</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {combinedTransactions.length > 0 ? (
+                                combinedTransactions.map((tx, index) => (
+                                  <TableRow key={index}>
+                                    <TableCell>
+                                      <div className="flex items-center gap-2">
+                                        {tx.type === 'donation' ? (
+                                          <>
+                                            <ArrowDownCircle className="h-4 w-4 text-green-500" /> 
+                                            <span className="text-green-500 font-medium">Donation</span>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <ArrowUpCircle className="h-4 w-4 text-red-500" /> 
+                                            <span className="text-red-500 font-medium">Funds Released</span>
+                                            <Badge variant="outline">Milestone {(tx.milestoneIndex !== undefined ? tx.milestoneIndex + 1 : '?')}</Badge>
+                                          </>
+                                        )}
+                                      </div>
+                                    </TableCell>
+                                    <TableCell>
+                                      {tx.formattedDate}
+                                    </TableCell>
+                                    <TableCell>
+                                      <div className="flex flex-col">
+                                        <span>{tx.type === 'donation' ? 'From' : 'To'}</span>
+                                        {tx.type === 'donation' ? (
+                                          <span className="text-xs font-mono">{formatAddress(tx.address)}</span>
+                                        ) : (
+                                          <div className="group flex items-center">
+                                            <span className="text-xs font-mono">{formatAddress(tx.address)}</span>
+                                            <TooltipProvider>
+                                              <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                  <button 
+                                                    onClick={() => copyToClipboard(tx.address)} 
+                                                    className="ml-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                  >
+                                                    {copiedAddresses[tx.address] ? 
+                                                      <Check className="h-3.5 w-3.5 text-green-500" /> : 
+                                                      <Copy className="h-3.5 w-3.5 text-gray-400 hover:text-gray-600" />
+                                                    }
+                                                  </button>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="top" align="center" className="px-3 py-1.5 text-xs">
+                                                  <p>{copiedAddresses[tx.address] ? 'Copied!' : 'Copy address'}</p>
+                                                </TooltipContent>
+                                              </Tooltip>
+                                            </TooltipProvider>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </TableCell>
+                                    <TableCell className="text-right font-mono">
+                                      {tx.formattedAmount} ETH
+                                    </TableCell>
+                                  </TableRow>
+                                ))
+                              ) : (
+                                <TableRow>
+                                  <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
+                                    No transaction history available
+                                  </TableCell>
+                                </TableRow>
+                              )}
+                            </TableBody>
+                          </Table>
+                        </CardContent>
+                      </Card>
+                      
+                      {/* Incoming Donations Section */}
+                      <div className="grid gap-6 md:grid-cols-2">
+                        <Card>
+                          <CardHeader>
+                            <div className="flex items-center gap-2">
+                              <ArrowDownCircle className="h-5 w-5 text-green-500" />
+                              <CardTitle className="text-lg">Incoming Donations</CardTitle>
+                            </div>
+                            <CardDescription>Money received from donors</CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            {donations.length > 0 ? (
+                              <div className="space-y-4">
+                                {donations.map((donation, index) => (
+                                  <div key={index} className="flex justify-between items-center border-b pb-2 last:border-0 last:pb-0">
+                                    <div className="flex flex-col">
+                                      <span className="font-medium">{formatAddress(donation.donor.address)}</span>
+                                      <span className="text-xs text-muted-foreground">{donation.formattedDate}</span>
+                                    </div>
+                                    <div className="font-mono text-green-600">
+                                      +{donation.formattedAmount} ETH
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-center py-4 text-muted-foreground">
+                                No donations yet
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                        
+                        {/* Outgoing Funds Section */}
+                        <Card>
+                          <CardHeader>
+                            <div className="flex items-center gap-2">
+                              <ArrowUpCircle className="h-5 w-5 text-red-500" />
+                              <CardTitle className="text-lg">Funds Released</CardTitle>
+                            </div>
+                            <CardDescription>Money sent to campaign recipients</CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            {fundsReleased.length > 0 ? (
               <div className="space-y-4">
-                <h2 className="text-2xl font-bold">Campaign Updates</h2>
-                <p className="text-muted-foreground">No updates available yet.</p>
-                {/* Add real updates if contract provides them */}
+                                {fundsReleased.map((release, index) => (
+                                  <div key={index} className="flex justify-between items-center border-b pb-2 last:border-0 last:pb-0">
+                                    <div className="flex flex-col">
+                                      <div className="flex items-center gap-2">
+                                        <div className="group flex items-center">
+                                          <span className="font-medium">{formatAddress(release.recipient)}</span>
+                                          <TooltipProvider>
+                                            <Tooltip>
+                                              <TooltipTrigger asChild>
+                                                <button 
+                                                  onClick={() => copyToClipboard(release.recipient)} 
+                                                  className="ml-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                >
+                                                  {copiedAddresses[release.recipient] ? 
+                                                    <Check className="h-3.5 w-3.5 text-green-500" /> : 
+                                                    <Copy className="h-3.5 w-3.5 text-gray-400 hover:text-gray-600" />
+                                                  }
+                                                </button>
+                                              </TooltipTrigger>
+                                              <TooltipContent side="top" align="center" className="px-3 py-1.5 text-xs">
+                                                <p>{copiedAddresses[release.recipient] ? 'Copied!' : 'Copy address'}</p>
+                                              </TooltipContent>
+                                            </Tooltip>
+                                          </TooltipProvider>
+                                        </div>
+                                        <Badge variant="outline">Milestone {release.milestoneIndex + 1}</Badge>
+                                      </div>
+                                      <span className="text-xs text-muted-foreground">{release.formattedDate}</span>
+                                    </div>
+                                    <div className="font-mono text-red-600">
+                                      -{release.formattedAmount} ETH
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-center py-4 text-muted-foreground">
+                                No funds released yet
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </TabsContent>
             <TabsContent value="donors" className="pt-6">
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-2xl font-bold">Recent Donors</h2>
+                <h2 className="text-2xl font-bold">Recent Donors</h2>
                   <div className="rounded-lg border mt-4">
-                    <div className="p-4 grid grid-cols-3 font-medium">
-                      <div>Donor</div>
-                      <div className="text-center">Amount</div>
-                      <div className="text-right">Date</div>
-                    </div>
-                    <div className="divide-y">
-                      {donorsData.slice(0, 5).map((donor, index) => (
-                        <div key={index} className="p-4 grid grid-cols-3">
-                          <div>{donor.donorName}</div>
-                          <div className="text-center">{donor.totalDonated} ETH</div>
-                          <div className="text-right">{donor.date}</div>
-                        </div>
-                      ))}
-                      {donorsData.length === 0 && (
-                        <div className="p-4 text-center text-muted-foreground">No donors yet.</div>
-                      )}
-                    </div>
+                  <div className="p-4 grid grid-cols-3 font-medium">
+                    <div>Donor</div>
+                    <div className="text-center">Amount</div>
+                    <div className="text-right">Date</div>
                   </div>
-                  {donorsData.length > 5 && (
+                  <div className="divide-y">
+                      {donorsData.slice(0, 5).map((donor, index) => (
+                      <div key={index} className="p-4 grid grid-cols-3">
+                        <div>{donor.donorName}</div>
+                        <div className="text-center">{donor.totalDonated} ETH</div>
+                        <div className="text-right">{donor.date}</div>
+                      </div>
+                    ))}
+                    {donorsData.length === 0 && (
+                      <div className="p-4 text-center text-muted-foreground">No donors yet.</div>
+                    )}
+                  </div>
+                </div>
+                {donorsData.length > 5 && (
                     <div className="flex justify-center mt-4">
-                      <Button variant="outline">View All Donors</Button>
-                    </div>
-                  )}
+                    <Button variant="outline">View All Donors</Button>
+                  </div>
+                )}
                 </div>
                 
                 <div>
