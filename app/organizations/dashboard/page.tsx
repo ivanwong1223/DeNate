@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import axios from "axios";
+import { CampaignPredictionChart } from "@/components/dashboard/CampaignPredictionChart";
 
 // Campaign interface based on the contract structure
 interface Campaign {
@@ -36,6 +37,11 @@ interface Campaign {
   }[];
   images?: string[];
   imageURI?: string;
+  donations?: {
+    donor: { address: string };
+    amount: string;
+    timestamp: string;
+  }[];
 }
 
 const ImageCarousel = ({ images }: { images: string[] }) => {
@@ -126,6 +132,7 @@ export default function OrganizationDashboardPage() {
   const [error, setError] = useState("");
   const [orgData, setOrgData] = useState<Partial<Organization> | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [activeCampaigns, setActiveCampaigns] = useState<Campaign[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [createCampaignLoading, setCreateCampaignLoading] = useState(false);
   const [createCampaignError, setCreateCampaignError] = useState("");
@@ -334,6 +341,12 @@ export default function OrganizationDashboardPage() {
     fetchOrgData();
   }, [address, isConnected]);
 
+  // Update activeCampaigns whenever campaigns changes
+  useEffect(() => {
+    const filtered = campaigns.filter(campaign => campaign.state === 0);
+    setActiveCampaigns(filtered);
+  }, [campaigns]);
+
   // Fetch campaign data function (modified to fetch image data from IPFS)
   const fetchCampaignData = async (walletAddress: string) => {
     setCampaignsLoading(true);
@@ -381,7 +394,7 @@ export default function OrganizationDashboardPage() {
           raised: ethers.formatEther(details._totalDonated),
           daysLeft: 30, // Default value
           donors: 0, // Will fetch separately
-          state: details._state,
+          state: parseInt(details._state),
           imageURI: details._campaignImageURI || "" // Get the campaign image URI
         };
       });
@@ -400,8 +413,11 @@ export default function OrganizationDashboardPage() {
         try {
           const donors = await campaignContract.getAllDonors();
           campaign.donors = donors.length;
+          
+          campaign.donations = [];
         } catch (error) {
           console.error("Error fetching donors for campaign:", error);
+          campaign.donations = [];
         }
 
         // Get milestones
@@ -559,34 +575,39 @@ export default function OrganizationDashboardPage() {
                 Enter the amount in ETH (e.g., 100 for 100 ETH)
               </p>
             </div>
-            
+
             {/* Campaign Images Upload */}
             <div className="grid gap-2">
               <Label htmlFor="images">Campaign Images (Up to 5)</Label>
-              
+
               {/* Image previews */}
               {imagePreviewUrls.length > 0 && (
                 <div className="grid gap-4 mb-4 max-h-[300px] overflow-y-auto pr-2">
                   {imagePreviewUrls.map((url, index) => (
-                    <div key={index} className="relative flex items-center gap-3 border border-border rounded-md p-2">
+                    <div
+                      key={index}
+                      className="relative flex items-center gap-3 border border-border rounded-md p-2"
+                    >
                       <div className="h-12 w-12 relative overflow-hidden rounded-md">
-                        <Image 
-                          src={url} 
-                          alt={`Preview ${index}`} 
-                          fill 
-                          style={{ objectFit: 'cover' }} 
+                        <Image
+                          src={url}
+                          alt={`Preview ${index}`}
+                          fill
+                          style={{ objectFit: 'cover' }}
                         />
                       </div>
                       <div className="flex-1 overflow-hidden">
-                        <p className="text-sm truncate">{campaignImages[index].name}</p>
+                        <p className="text-sm truncate">
+                          {campaignImages[index].name}
+                        </p>
                         <p className="text-xs text-muted-foreground">
                           {Math.round(campaignImages[index].size / 1024)} KB
                         </p>
                       </div>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8" 
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
                         onClick={() => removeImage(index)}
                         type="button"
                         disabled={createCampaignLoading}
@@ -597,7 +618,7 @@ export default function OrganizationDashboardPage() {
                   ))}
                 </div>
               )}
-              
+
               {/* Upload button */}
               {imagePreviewUrls.length < 5 && (
                 <div className="flex items-center">
@@ -607,13 +628,17 @@ export default function OrganizationDashboardPage() {
                     accept="image/*"
                     multiple
                     onChange={handleImageUpload}
-                    disabled={createCampaignLoading || imagePreviewUrls.length >= 5}
+                    disabled={
+                      createCampaignLoading || imagePreviewUrls.length >= 5
+                    }
                     className="hidden"
                   />
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => document.getElementById('images')?.click()}
-                    disabled={createCampaignLoading || imagePreviewUrls.length >= 5}
+                    disabled={
+                      createCampaignLoading || imagePreviewUrls.length >= 5
+                    }
                     type="button"
                     className="flex-1"
                   >
@@ -622,9 +647,10 @@ export default function OrganizationDashboardPage() {
                   </Button>
                 </div>
               )}
-              
+
               <p className="text-xs text-muted-foreground">
-                Upload up to 5 high-quality images related to your campaign (PNG, JPG)
+                Upload up to 5 high-quality images related to your campaign
+                (PNG, JPG)
               </p>
             </div>
           </div>
@@ -638,7 +664,12 @@ export default function OrganizationDashboardPage() {
             </Button>
             <Button
               onClick={handleCreateCampaign}
-              disabled={createCampaignLoading || !campaignFormData.name || !campaignFormData.description || !campaignFormData.goal}
+              disabled={
+                createCampaignLoading ||
+                !campaignFormData.name ||
+                !campaignFormData.description ||
+                !campaignFormData.goal
+              }
             >
               {createCampaignLoading ? (
                 <>
@@ -646,7 +677,7 @@ export default function OrganizationDashboardPage() {
                   Creating...
                 </>
               ) : (
-                "Create Campaign"
+                'Create Campaign'
               )}
             </Button>
           </DialogFooter>
@@ -658,8 +689,8 @@ export default function OrganizationDashboardPage() {
         className="relative w-full py-16 md:py-24 text-white overflow-hidden"
         style={{
           backgroundImage: "url('/charity.png')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
         }}
       >
         {/* Overlay to ensure text readability */}
@@ -673,13 +704,13 @@ export default function OrganizationDashboardPage() {
                   {orgData.name}
                 </h1>
                 {orgData.verified && (
-                  <Badge className="bg-emerald-500/80 text-white border-none">
+                  <Badge className="bg-green-500/80 text-white border-none">
                     <Award className="w-3 h-3 mr-1" /> Verified
                   </Badge>
                 )}
               </div>
               <p className="text-xl text-slate-200 max-w-2xl drop-shadow-md">
-                {orgData.description || "No description available."}
+                {orgData.description || 'No description available.'}
               </p>
               {/* <div className="flex items-center gap-2 text-sm text-slate-300">
                 <span className="font-medium">Wallet:</span>
@@ -689,7 +720,7 @@ export default function OrganizationDashboardPage() {
               </div> */}
             </div>
             <div className="flex flex-col md:flex-row lg:flex-col items-center md:items-end gap-4 lg:justify-center">
-              <Button 
+              <Button
                 className="w-full bg-primary hover:bg-primary/90 shadow-lg transition-all"
                 onClick={() => setDialogOpen(true)}
               >
@@ -712,9 +743,15 @@ export default function OrganizationDashboardPage() {
                     <BarChart3 className="h-6 w-6 text-primary" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Total Raised</p>
-                    <h3 className="text-2xl font-bold text-foreground">{totalRaised} ETH</h3>
-                    <p className="text-xs text-muted-foreground">of {totalGoal} ETH goal</p>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Total Raised
+                    </p>
+                    <h3 className="text-2xl font-bold text-foreground">
+                      {totalRaised} ETH
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      of {totalGoal} ETH goal
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -723,13 +760,19 @@ export default function OrganizationDashboardPage() {
             <Card className="shadow-lg border-none bg-card/60 backdrop-blur-sm">
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                    <Users className="h-6 w-6 text-emerald-500" />
+                  <div className="h-12 w-12 rounded-full bg-green-500/10 flex items-center justify-center">
+                    <Users className="h-6 w-6 text-green-500" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Total Donors</p>
-                    <h3 className="text-2xl font-bold text-foreground">{totalDonors}</h3>
-                    <p className="text-xs text-muted-foreground">across {campaigns.length} campaigns</p>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Total Donors
+                    </p>
+                    <h3 className="text-2xl font-bold text-foreground">
+                      {totalDonors}
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      across {campaigns.length} campaigns
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -742,9 +785,15 @@ export default function OrganizationDashboardPage() {
                     <PlusCircle className="h-6 w-6 text-purple-500" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Active Campaigns</p>
-                    <h3 className="text-2xl font-bold text-foreground">{campaigns.length}</h3>
-                    <p className="text-xs text-muted-foreground">making an impact</p>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Active Campaigns
+                    </p>
+                    <h3 className="text-2xl font-bold text-foreground">
+                      {campaigns.length}
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      making an impact
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -757,29 +806,48 @@ export default function OrganizationDashboardPage() {
       <section className="w-full py-10">
         <div className="container px-4 md:px-6 mx-auto">
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-foreground">Your Campaigns</h2>
-            <p className="text-muted-foreground">Manage and track the progress of your fundraising efforts</p>
+            <h2 className="text-2xl font-bold text-foreground">
+              Your Campaigns
+            </h2>
+            <p className="text-muted-foreground">
+              Manage and track the progress of your fundraising efforts
+            </p>
           </div>
+
+          <Card className="border-0 shadow-lg bg-card/60 backdrop-blur-sm overflow-hidden">
+            <CardContent className="p-6">
+              <CampaignPredictionChart campaigns={activeCampaigns} />
+            </CardContent>
+          </Card>
 
           <Card className="border-0 shadow-lg bg-card/60 backdrop-blur-sm overflow-hidden">
             <CardHeader className="bg-card/50 border-b border-border">
               <CardTitle>Campaign Overview</CardTitle>
-              <CardDescription>Status and progress of your active campaigns</CardDescription>
+              <CardDescription>
+                Status and progress of your active campaigns
+              </CardDescription>
             </CardHeader>
             <CardContent className="p-6">
               {campaignsLoading ? (
                 <div className="flex items-center justify-center py-20">
                   <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
-                  <p className="text-muted-foreground">Loading campaign data...</p>
+                  <p className="text-muted-foreground">
+                    Loading campaign data...
+                  </p>
                 </div>
               ) : campaigns.length === 0 ? (
                 <div className="text-center py-20 bg-card/30 rounded-lg">
                   <div className="w-16 h-16 bg-primary/10 rounded-full mx-auto mb-4 flex items-center justify-center">
                     <PlusCircle className="h-8 w-8 text-primary" />
                   </div>
-                  <h3 className="text-xl font-semibold text-foreground mb-2">No campaigns yet</h3>
-                  <p className="text-muted-foreground mb-6 max-w-md mx-auto">You haven't created any campaigns yet. Start making a difference by creating your first campaign.</p>
-                  <Button 
+                  <h3 className="text-xl font-semibold text-foreground mb-2">
+                    No campaigns yet
+                  </h3>
+                  <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                    You haven't created any campaigns yet. Start making a
+                    difference by creating your first campaign.
+                  </p>
+                  <Button
                     className="bg-primary hover:bg-primary/90"
                     onClick={() => setDialogOpen(true)}
                   >
@@ -788,74 +856,274 @@ export default function OrganizationDashboardPage() {
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-6">
-                  {campaigns.map((campaign) => (
-                    <div key={campaign.id} className="border border-border rounded-lg overflow-hidden hover:bg-card/80 transition-colors">
-                      {/* Display image carousel if images exist */}
-                      {campaign.images && campaign.images.length > 0 && (
-                        <ImageCarousel images={campaign.images} />
-                      )}
-                      
-                      <div className="p-6">
-                        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-xl text-foreground">{campaign.title}</h3>
-                            <p className="text-muted-foreground mt-1 line-clamp-2">{campaign.description}</p>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
-                              <div className="flex items-center">
-                                <Users className="mr-1 h-4 w-4" />
-                                <span>{campaign.donors} donors</span>
-                              </div>
-                              <div className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
-                                {campaign.state === 0 ? "Active" : campaign.state === 1 ? "Completed" : "Inactive"}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex gap-3">
-                            <Link href={`/organizations/campaigns/${campaign.id}`}>
-                              <Button variant="outline" size="sm">
-                                View Details
-                              </Button>
-                            </Link>
-                            <Link href={`/organizations/campaigns/${campaign.id}/edit`}>
-                              <Button variant="outline" size="sm">
-                                Edit
-                              </Button>
-                            </Link>
-                          </div>
-                        </div>
-                        <div className="mt-4 space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span className="font-medium text-foreground">{formatEthAmount(campaign.raised)} ETH raised</span>
-                            <span className="text-muted-foreground">of {formatEthAmount(campaign.goal)} ETH goal</span>
-                          </div>
-                          <Progress
-                            value={(parseFloat(campaign.raised) / parseFloat(campaign.goal)) * 100}
-                            className="h-2"
-                          />
-                        </div>
-                        {campaign.milestones && campaign.milestones.length > 0 && (
-                          <div className="mt-6">
-                            <h4 className="text-sm font-medium text-foreground mb-3">Milestones</h4>
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                              {campaign.milestones.map((milestone, index) => (
-                                <div
-                                  key={index}
-                                  className={`p-3 rounded-lg text-center ${milestone.status === "completed"
-                                      ? "bg-emerald-950/20 text-emerald-400 border border-emerald-800/50"
-                                      : "bg-card/50 text-muted-foreground border border-border"
-                                    }`}
-                                >
-                                  <div className="font-medium text-xs mb-1">{milestone.title}</div>
-                                  <div className="text-sm">{formatEthAmount(milestone.amount)} ETH</div>
+                <div className="space-y-8">
+                  {/* Active Campaigns Section */}
+                  <div className="mb-8">
+                    <h3 className="text-lg font-semibold mb-4 flex items-center">
+                      <div className="mr-2 w-2 h-2 rounded-full bg-green-500"></div>
+                      Active Campaigns
+                    </h3>
+                    <div className="space-y-8">
+                      {campaigns.filter(campaign => campaign.state === 0).map((campaign) => (
+                        <div
+                          key={campaign.id}
+                          className="border border-border bg-gradient-to-br from-card/80 to-card/50 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300"
+                        >
+                          <div className="flex flex-col md:flex-row overflow-hidden">
+                            {/* Image section - takes 40% width on desktop */}
+                            <div className="md:w-2/5 relative">
+                              {campaign.images && campaign.images.length > 0 ? (
+                                <ImageCarousel images={campaign.images} />
+                              ) : (
+                                <div className="h-48 md:h-full min-h-[200px] bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
+                                  <div className="text-primary/50 text-4xl font-bold">{campaign.title?.charAt(0) || "C"}</div>
                                 </div>
-                              ))}
+                              )}
+                            </div>
+                            
+                            {/* Content section - takes 60% width on desktop */}
+                            <div className="flex-1 p-6 flex flex-col h-full justify-between">
+                              <div>
+                                <div className="flex justify-between items-start mb-3">
+                                  <h3 className="font-bold text-xl text-foreground">{campaign.title}</h3>
+                                  <div className="flex items-center text-muted-foreground text-sm">
+                                    <Clock className="h-3.5 w-3.5 mr-1" />
+                                    <span>{campaign.daysLeft} days left</span>
+                                  </div>
+                                </div>
+                                
+                                <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
+                                  {campaign.description}
+                                </p>
+                                
+                                <div className="mb-4">
+                                  <div className="flex justify-between text-sm mb-2">
+                                    <span className="font-medium text-foreground">
+                                      {formatEthAmount(campaign.raised)} ETH raised
+                                    </span>
+                                    <span className="text-muted-foreground">
+                                      of {formatEthAmount(campaign.goal)} ETH goal
+                                    </span>
+                                  </div>
+                                  <div className="h-2.5 w-full bg-primary/10 rounded-full overflow-hidden">
+                                    <div 
+                                      className="h-full bg-gradient-to-r from-primary to-primary/80 rounded-full transition-all duration-500"
+                                      style={{ 
+                                        width: `${Math.min((parseFloat(campaign.raised) / parseFloat(campaign.goal)) * 100, 100)}%`,
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                                
+                                <div className="flex flex-wrap gap-3 mb-4">
+                                  <div className="flex items-center bg-primary/10 text-primary rounded-full px-3 py-1.5 text-xs">
+                                    <Users className="mr-1.5 h-3.5 w-3.5" />
+                                    <span className="font-medium">{campaign.donors} donors</span>
+                                  </div>
+                                  
+                                  <div className="flex items-center text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
+                                    Active
+                                  </div>
+                                  
+                                  {/* Conditional milestone summary badge */}
+                                  {campaign.milestones && campaign.milestones.length > 0 && (
+                                    <div className="flex items-center bg-amber-500/10 text-amber-500 rounded-full px-3 py-1.5 text-xs">
+                                      <span className="font-medium">
+                                        {campaign.milestones.filter(m => m.status === 'completed').length} of {campaign.milestones.length} milestones completed
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              
+                              <div className="flex flex-col sm:flex-row gap-3 mt-2">
+                                <Link
+                                  href={`/organizations/campaigns/${campaign.id}`}
+                                  className="flex-1"
+                                >
+                                  <Button variant="default" size="sm" className="w-full">
+                                    View Details
+                                    <ChevronRight className="ml-1.5 h-3.5 w-3.5" />
+                                  </Button>
+                                </Link>
+                                <Link
+                                  href={`/organizations/campaigns/${campaign.id}/edit`}
+                                  className="flex-1"
+                                >
+                                  <Button variant="outline" size="sm" className="w-full">
+                                    Manage Campaign
+                                  </Button>
+                                </Link>
+                              </div>
                             </div>
                           </div>
-                        )}
+                          
+                          {/* Milestone section - conditionally rendered */}
+                          {campaign.milestones && campaign.milestones.length > 0 && (
+                            <div>
+                              <div className="flex items-center px-6 py-4 mb-2">
+                                <Award className="h-4 w-4 mr-1.5 text-amber-500" />
+                                <h4 className="text-sm font-medium text-foreground">
+                                  Project Milestones
+                                </h4>
+                              </div>
+                              <div className="grid grid-cols-3 gap-4 px-6 pb-6">
+                                {campaign.milestones.map((milestone, index) => (
+                                  <div
+                                    key={index}
+                                    className={`border text-center p-4 rounded-lg ${
+                                      milestone.status === 'completed' 
+                                        ? 'bg-green-950/10 border-green-800/30 text-green-500' 
+                                        : 'bg-red-950/5 border-red-800/20 text-red-400'
+                                    }`}
+                                  >
+                                    <div className="font-medium mb-1">{milestone.title}</div>
+                                    <div className="text-sm font-bold mb-2">
+                                      {formatEthAmount(milestone.amount)} ETH
+                                    </div>
+                                    {milestone.status === 'completed' ? (
+                                      <div className="text-xs text-green-500 bg-green-950/20 inline-block px-2 py-0.5 rounded">
+                                        Completed
+                                      </div>
+                                    ) : (
+                                      <div className="text-xs text-red-400 bg-red-950/10 inline-block px-2 py-0.5 rounded">
+                                        Pending
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Completed Campaigns Section */}
+                  {campaigns.filter(campaign => campaign.state !== 0).length > 0 && (
+                    <div className="mt-10">
+                      <h3 className="text-lg font-semibold mb-4 flex items-center">
+                        <div className="mr-2 w-2 h-2 rounded-full bg-amber-500"></div>
+                        Completed Campaigns
+                      </h3>
+                      <div className="space-y-8">
+                        {campaigns.filter(campaign => campaign.state !== 0).map((campaign) => (
+                          <div
+                            key={campaign.id}
+                            className="border border-border bg-gradient-to-br from-card/80 to-card/50 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300"
+                          >
+                            <div className="flex flex-col md:flex-row overflow-hidden">
+                              {/* Image section - takes 40% width on desktop */}
+                              <div className="md:w-2/5 relative">
+                                {campaign.images && campaign.images.length > 0 ? (
+                                  <ImageCarousel images={campaign.images} />
+                                ) : (
+                                  <div className="h-48 md:h-full min-h-[200px] bg-gradient-to-br from-amber-500/10 to-amber-500/5 flex items-center justify-center">
+                                    <div className="text-amber-500/50 text-4xl font-bold">{campaign.title?.charAt(0) || "C"}</div>
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {/* Content section - takes 60% width on desktop */}
+                              <div className="flex-1 p-6 flex flex-col h-full justify-between">
+                                <div>
+                                  <div className="flex justify-between items-start mb-3">
+                                    <h3 className="font-bold text-xl text-foreground">{campaign.title}</h3>
+                                    <div className="flex items-center text-amber-500 text-sm">
+                                      <div className="flex items-center text-xs px-2 py-1 rounded-full bg-amber-500/10 text-amber-500">
+                                        Completed
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
+                                    {campaign.description}
+                                  </p>
+                                  
+                                  <div className="mb-4">
+                                    <div className="flex justify-between text-sm mb-2">
+                                      <span className="font-medium text-foreground">
+                                        {formatEthAmount(campaign.raised)} ETH raised
+                                      </span>
+                                      <span className="text-muted-foreground">
+                                        of {formatEthAmount(campaign.goal)} ETH goal
+                                      </span>
+                                    </div>
+                                    <div className="h-2.5 w-full bg-amber-500/10 rounded-full overflow-hidden">
+                                      <div 
+                                        className="h-full bg-gradient-to-r from-amber-500 to-amber-500/80 rounded-full transition-all duration-500"
+                                        style={{ 
+                                          width: `${Math.min((parseFloat(campaign.raised) / parseFloat(campaign.goal)) * 100, 100)}%`,
+                                        }}
+                                      />
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="flex flex-wrap gap-3 mb-4">
+                                    <div className="flex items-center bg-amber-500/10 text-amber-500 rounded-full px-3 py-1.5 text-xs">
+                                      <Users className="mr-1.5 h-3.5 w-3.5" />
+                                      <span className="font-medium">{campaign.donors} donors</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                <div className="flex flex-col sm:flex-row gap-3 mt-2">
+                                  <Link
+                                    href={`/organizations/campaigns/${campaign.id}`}
+                                    className="flex-1"
+                                  >
+                                    <Button variant="default" size="sm" className="w-full">
+                                      View Details
+                                      <ChevronRight className="ml-1.5 h-3.5 w-3.5" />
+                                    </Button>
+                                  </Link>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Milestone section - conditionally rendered */}
+                            {campaign.milestones && campaign.milestones.length > 0 && (
+                              <div>
+                                <div className="flex items-center px-6 py-4 mb-2">
+                                  <Award className="h-4 w-4 mr-1.5 text-amber-500" />
+                                  <h4 className="text-sm font-medium text-foreground">
+                                    Project Milestones
+                                  </h4>
+                                </div>
+                                <div className="grid grid-cols-3 gap-4 px-6 pb-6">
+                                  {campaign.milestones.map((milestone, index) => (
+                                    <div
+                                      key={index}
+                                      className={`border text-center p-4 rounded-lg ${
+                                        milestone.status === 'completed' 
+                                          ? 'bg-green-950/10 border-green-800/30 text-green-500' 
+                                          : 'bg-red-950/5 border-red-800/20 text-red-400'
+                                      }`}
+                                    >
+                                      <div className="font-medium mb-1">{milestone.title}</div>
+                                      <div className="text-sm font-bold mb-2">
+                                        {formatEthAmount(milestone.amount)} ETH
+                                      </div>
+                                      {milestone.status === 'completed' ? (
+                                        <div className="text-xs text-green-500 bg-green-950/20 inline-block px-2 py-0.5 rounded">
+                                          Completed
+                                        </div>
+                                      ) : (
+                                        <div className="text-xs text-red-400 bg-red-950/10 inline-block px-2 py-0.5 rounded">
+                                          Pending
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  ))}
+                  )}
                 </div>
               )}
             </CardContent>
