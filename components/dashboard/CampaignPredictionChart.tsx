@@ -509,15 +509,76 @@ export function CampaignPredictionChart({ campaigns, loading = false }: Campaign
     }
   };
 
+  // if (loading || isLoading) {
+  //   return (
+  //     <Card className="col-span-3">
+  //       <CardHeader>
+  //         <CardTitle>Campaign Funding Predictions</CardTitle>
+  //         <CardDescription>AI-powered funding predictions for your campaigns</CardDescription>
+  //       </CardHeader>
+  //       <CardContent>
+  //         <Skeleton className="h-[400px] w-full" />
+  //       </CardContent>
+  //     </Card>
+  //   );
+  // }
   if (loading || isLoading) {
     return (
       <Card className="col-span-3">
         <CardHeader>
-          <CardTitle>Campaign Funding Predictions</CardTitle>
-          <CardDescription>AI-powered funding predictions for your campaigns</CardDescription>
+          <div className="space-y-2">
+            <Skeleton className="h-7 w-[250px] bg-white/70" />
+            <Skeleton className="h-4 w-[300px] bg-white/50" />
+          </div>
         </CardHeader>
         <CardContent>
-          <Skeleton className="h-[400px] w-full" />
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-9 w-24 rounded-lg bg-white/40" />
+              ))}
+            </div>
+
+            <div className="relative h-[400px] w-full overflow-hidden rounded-lg border border-white/20 bg-white/5 p-4">
+              <div className="absolute inset-0 flex flex-col justify-between">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="h-px w-full bg-white/20" />
+                ))}
+              </div>
+
+              <div className="relative h-full w-full">
+                <div className="absolute bottom-0 left-0 right-0 top-0">
+                  <div className="h-full w-full animate-pulse">
+                    <div
+                      className="absolute h-full w-full bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-40"
+                      style={{
+                        clipPath:
+                          'polygon(0% 100%, 100% 80%, 100% 100%, 0% 100%)',
+                      }}
+                    />
+                    <div
+                      className="absolute h-full w-full bg-gradient-to-b from-transparent to-white/10 opacity-30"
+                      style={{
+                        clipPath:
+                          'polygon(0% 100%, 100% 80%, 100% 100%, 0% 100%)',
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="absolute bottom-4 left-4 right-4 flex flex-wrap gap-4">
+                {['Historical', 'Projected', 'Goal'].map((label, i) => (
+                  <div key={label} className="flex items-center gap-2">
+                    <Skeleton className="h-3 w-3 rounded-full bg-white/30" />
+                    <Skeleton className="h-3 w-16 bg-white/30" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <Skeleton className="mx-auto h-3 w-48 bg-white/30" />
+          </div>
         </CardContent>
       </Card>
     );
