@@ -300,7 +300,7 @@ export default function DonorDashboardPage() {
             </Card>
           </div>
 
-          <div className="grid gap-6 mt-8 lg:grid-cols-2">
+          <div className="grid gap-6 mt-8">
             <Card>
               <CardHeader>
                 <CardTitle>Active Campaigns</CardTitle>
@@ -340,31 +340,6 @@ export default function DonorDashboardPage() {
                   </Button>
                 </Link>
               </CardFooter>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Donations</CardTitle>
-                <CardDescription>Your recent contribution history</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {recentDonations.map((donation) => (
-                    <div key={donation.id} className="flex justify-between border-b pb-3 last:border-0 last:pb-0">
-                      <div>
-                        <h3 className="font-medium">{donation.campaignTitle}</h3>
-                        <p className="text-sm text-muted-foreground">{donation.organizationName}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-medium">{donation.amount} ETH</p>
-                        <Badge variant="outline" className="mt-1">
-                          {donation.status}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
             </Card>
           </div>
         </div>
