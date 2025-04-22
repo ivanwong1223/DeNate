@@ -11,6 +11,8 @@ import { useEffect, useState } from "react"
 import { ethers } from "ethers"
 import { charityCentral_ABI, charityCentral_CA, charityCampaigns_ABI } from "@/config/contractABI"
 import axios from "axios"
+import DonorChatbot from "@/components/dashboard/DonorChatbot"
+import { useAccount } from "wagmi"
 
 interface Campaign {
   address: string;
@@ -110,6 +112,7 @@ export default function DonatePage() {
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
   };
+  const { address, isConnected } = useAccount();
 
   useEffect(() => {
     const fetchOrganizations = async () => {
@@ -302,6 +305,17 @@ export default function DonatePage() {
           </div>
         </div>
       </section>
+      
+      {/* Add DonorChatbot */}
+      {isConnected && address && (
+        <DonorChatbot
+          donorName="Donor"
+          walletAddress={address}
+          totalDonated="0"
+          donationsCount={0}
+          recentDonations={[]}
+        />
+      )}
     </div>
   )
 }

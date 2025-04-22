@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import axios from "axios";
 import { CampaignPredictionChart } from "@/components/dashboard/CampaignPredictionChart";
+import OrgChatbot from "@/components/dashboard/OrgChatbot";
 
 // Campaign interface based on the contract structure
 interface Campaign {
@@ -520,145 +521,151 @@ export default function OrganizationDashboardPage() {
     <div className="flex flex-col min-h-screen bg-background">
       {/* Create Campaign Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[550px] bg-background border-border max-h-[90vh] overflow-hidden flex flex-col">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-[650px] md:max-w-[700px] bg-background border-border max-h-[90vh] overflow-hidden flex flex-col p-0">
+          <DialogHeader className="p-6 pb-2 bg-background sticky top-0 z-10">
             <DialogTitle className="text-2xl">Create New Campaign</DialogTitle>
             <DialogDescription>
               Enter the details for your new fundraising campaign
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-6 py-4 overflow-y-auto pr-2">
+          
+          <div className="flex-1 overflow-y-auto px-6 py-4">
             {createCampaignError && (
-              <div className="bg-red-950/20 border border-red-800/30 text-red-400 px-4 py-3 rounded-md text-sm">
+              <div className="bg-red-950/20 border border-red-800/30 text-red-400 px-4 py-3 mb-6 rounded-md text-sm">
                 {createCampaignError}
               </div>
             )}
-            <div className="grid gap-2">
-              <Label htmlFor="name">Campaign Name</Label>
-              <Input
-                id="name"
-                name="name"
-                placeholder="Enter a clear, descriptive name"
-                value={campaignFormData.name}
-                onChange={handleCampaignInputChange}
-                disabled={createCampaignLoading}
-                className="bg-card/50"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                name="description"
-                placeholder="Detailed description of your campaign"
-                className="min-h-[120px] bg-card/50"
-                value={campaignFormData.description}
-                onChange={handleCampaignInputChange}
-                disabled={createCampaignLoading}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="goal">Funding Goal (ETH)</Label>
-              <Input
-                id="goal"
-                name="goal"
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="100"
-                value={campaignFormData.goal}
-                onChange={handleCampaignInputChange}
-                disabled={createCampaignLoading}
-                className="bg-card/50"
-              />
-              <p className="text-xs text-muted-foreground">
-                Enter the amount in ETH (e.g., 100 for 100 ETH)
-              </p>
-            </div>
+            
+            <div className="space-y-6">
+              <div className="grid gap-2">
+                <Label htmlFor="name" className="text-base">Campaign Name</Label>
+                <Input
+                  id="name"
+                  name="name"
+                  placeholder="Enter a clear, descriptive name"
+                  value={campaignFormData.name}
+                  onChange={handleCampaignInputChange}
+                  disabled={createCampaignLoading}
+                  className="bg-card/50"
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="description" className="text-base">Description</Label>
+                <Textarea
+                  id="description"
+                  name="description"
+                  placeholder="Detailed description of your campaign"
+                  className="min-h-[120px] bg-card/50 resize-none"
+                  value={campaignFormData.description}
+                  onChange={handleCampaignInputChange}
+                  disabled={createCampaignLoading}
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="goal" className="text-base">Funding Goal (ETH)</Label>
+                <Input
+                  id="goal"
+                  name="goal"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="100"
+                  value={campaignFormData.goal}
+                  onChange={handleCampaignInputChange}
+                  disabled={createCampaignLoading}
+                  className="bg-card/50"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Enter the amount in ETH (e.g., 100 for 100 ETH)
+                </p>
+              </div>
 
-            {/* Campaign Images Upload */}
-            <div className="grid gap-2">
-              <Label htmlFor="images">Campaign Images (Up to 5)</Label>
+              {/* Campaign Images Upload */}
+              <div className="grid gap-2">
+                <Label htmlFor="images" className="text-base">Campaign Images</Label>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Upload up to 5 high-quality images related to your campaign (PNG, JPG)
+                </p>
 
-              {/* Image previews */}
-              {imagePreviewUrls.length > 0 && (
-                <div className="grid gap-4 mb-4 max-h-[300px] overflow-y-auto pr-2">
-                  {imagePreviewUrls.map((url, index) => (
-                    <div
-                      key={index}
-                      className="relative flex items-center gap-3 border border-border rounded-md p-2"
-                    >
-                      <div className="h-12 w-12 relative overflow-hidden rounded-md">
-                        <Image
-                          src={url}
-                          alt={`Preview ${index}`}
-                          fill
-                          style={{ objectFit: 'cover' }}
-                        />
-                      </div>
-                      <div className="flex-1 overflow-hidden">
-                        <p className="text-sm truncate">
-                          {campaignImages[index].name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {Math.round(campaignImages[index].size / 1024)} KB
-                        </p>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => removeImage(index)}
-                        type="button"
-                        disabled={createCampaignLoading}
+                {/* Image previews */}
+                {imagePreviewUrls.length > 0 && (
+                  <div className="grid gap-3 max-h-[220px] overflow-y-auto pr-2 mb-4 border border-border rounded-md p-3 bg-card/30">
+                    {imagePreviewUrls.map((url, index) => (
+                      <div
+                        key={index}
+                        className="relative flex items-center gap-3 border border-border rounded-md p-2 bg-background"
                       >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
+                        <div className="h-12 w-12 relative overflow-hidden rounded-md shrink-0">
+                          <Image
+                            src={url}
+                            alt={`Preview ${index}`}
+                            fill
+                            style={{ objectFit: 'cover' }}
+                          />
+                        </div>
+                        <div className="flex-1 overflow-hidden">
+                          <p className="text-sm truncate font-medium">
+                            {campaignImages[index].name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {Math.round(campaignImages[index].size / 1024)} KB
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 shrink-0"
+                          onClick={() => removeImage(index)}
+                          type="button"
+                          disabled={createCampaignLoading}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
-              {/* Upload button */}
-              {imagePreviewUrls.length < 5 && (
-                <div className="flex items-center">
-                  <Input
-                    id="images"
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleImageUpload}
-                    disabled={
-                      createCampaignLoading || imagePreviewUrls.length >= 5
-                    }
-                    className="hidden"
-                  />
-                  <Button
-                    variant="outline"
-                    onClick={() => document.getElementById('images')?.click()}
-                    disabled={
-                      createCampaignLoading || imagePreviewUrls.length >= 5
-                    }
-                    type="button"
-                    className="flex-1"
-                  >
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload Images
-                  </Button>
-                </div>
-              )}
-
-              <p className="text-xs text-muted-foreground">
-                Upload up to 5 high-quality images related to your campaign
-                (PNG, JPG)
-              </p>
+                {/* Upload button */}
+                {imagePreviewUrls.length < 5 && (
+                  <div className="flex items-center">
+                    <Input
+                      id="images"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleImageUpload}
+                      disabled={
+                        createCampaignLoading || imagePreviewUrls.length >= 5
+                      }
+                      className="hidden"
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={() => document.getElementById('images')?.click()}
+                      disabled={
+                        createCampaignLoading || imagePreviewUrls.length >= 5
+                      }
+                      type="button"
+                      className="w-full"
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      {imagePreviewUrls.length === 0 ? "Upload Images" : "Add More Images"}
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-          <DialogFooter className="pt-4 border-t border-border mt-2">
+          
+          <DialogFooter className="px-6 py-4 border-t border-border bg-muted/30 sticky bottom-0 z-10">
             <Button
               variant="outline"
               onClick={() => setDialogOpen(false)}
               disabled={createCampaignLoading}
+              className="mr-2"
             >
               Cancel
             </Button>
@@ -670,6 +677,7 @@ export default function OrganizationDashboardPage() {
                 !campaignFormData.description ||
                 !campaignFormData.goal
               }
+              className="min-w-[120px]"
             >
               {createCampaignLoading ? (
                 <>
@@ -688,7 +696,7 @@ export default function OrganizationDashboardPage() {
       <section
         className="relative w-full py-16 md:py-24 text-white overflow-hidden"
         style={{
-          backgroundImage: "url('/charity.png')",
+          backgroundImage: "url('/Org-dashboard.png')",
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}
@@ -1128,16 +1136,27 @@ export default function OrganizationDashboardPage() {
               )}
             </CardContent>
             <CardFooter className="bg-card/50 border-t border-border p-4">
-              <Link href="/organizations/campaigns" className="w-full">
+              {/* <Link href="/organizations/campaigns" className="w-full">
                 <Button variant="outline" className="w-full">
-                  Manage All Campaigns
+                  View All Campaigns
                   <ChevronRight className="ml-2 h-4 w-4" />
                 </Button>
-              </Link>
+              </Link> */}
             </CardFooter>
           </Card>
         </div>
       </section>
+
+      {/* Add the chatbot at the bottom of the return, outside any section */}
+      {!loading && !error && orgData && (
+        <OrgChatbot 
+          orgData={orgData} 
+          campaigns={campaigns} 
+          totalRaised={totalRaised} 
+          totalGoal={totalGoal} 
+          totalDonors={totalDonors} 
+        />
+      )}
     </div>
   );
 }

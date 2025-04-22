@@ -24,6 +24,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import DonorChatbot from "@/components/dashboard/DonorChatbot";
 
 interface Campaign {
   address: string;
@@ -1120,6 +1121,24 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ addre
           </Tabs>
         </div>
       </section>
+      
+      {/* Add DonorChatbot */}
+      {isConnected && address && (
+        <DonorChatbot
+          donorName={donorsData.find(d => d.donorAddress.toLowerCase() === address.toLowerCase())?.donorName || "Donor"}
+          walletAddress={address}
+          totalDonated={donorsData.find(d => d.donorAddress.toLowerCase() === address.toLowerCase())?.totalDonated || "0"}
+          donationsCount={1}
+          recentDonations={[
+            {
+              campaignId: campaignAddress,
+              campaignName: campaignDetails.name,
+              amount: donorsData.find(d => d.donorAddress.toLowerCase() === address.toLowerCase())?.totalDonated || "0",
+              date: new Date().toLocaleDateString()
+            }
+          ]}
+        />
+      )}
     </div>
   );
 }

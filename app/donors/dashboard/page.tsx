@@ -13,6 +13,7 @@ import { useEffect, useState } from "react"
 import { useAccount } from "wagmi";
 import { ethers } from "ethers"
 import { charityCentral_ABI, charityCentral_CA, charityCampaigns_ABI } from "@/config/contractABI"
+import DonorChatbot from "@/components/dashboard/DonorChatbot"
 
 interface Campaign {
   address: string;
@@ -344,6 +345,22 @@ export default function DonorDashboardPage() {
           </div>
         </div>
       </section>
+
+      {/* Add the DonorChatbot at the end of the return statement */}
+      {isConnected && address && (
+        <DonorChatbot
+          donorName={orgData?.name || donor.name || "Donor"}
+          walletAddress={address}
+          totalDonated={userLeaderboardInfo.amount}
+          donationsCount={recentDonations.length}
+          recentDonations={recentDonations.map(donation => ({
+            campaignId: donation.campaignId,
+            campaignName: donation.campaignTitle,
+            amount: donation.amount.toString(),
+            date: donation.date
+          }))}
+        />
+      )}
     </div>
   )
 }
