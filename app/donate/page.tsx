@@ -29,9 +29,7 @@ interface Campaign {
 const ImageCarousel = ({ images }: { images: string[] }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  if (!images || images.length === 0) {
-    return null;
-  }
+  if (!images || images.length === 0) return null;
 
   const nextImage = () => {
     setCurrentImageIndex((prev) => (prev + 1) % images.length);
@@ -50,38 +48,36 @@ const ImageCarousel = ({ images }: { images: string[] }) => {
     <div className="relative w-full h-[200px] overflow-hidden">
       <div className="absolute inset-0 bg-gray-900/20 z-10"></div>
       <div className="relative h-full w-full">
-        <Image 
-          src={getDisplayUrl(images[currentImageIndex])} 
-          alt="Campaign image" 
-          fill 
-          style={{ objectFit: 'cover' }} 
+        <Image
+          src={getDisplayUrl(images[currentImageIndex])}
+          alt="Campaign image"
+          fill
+          style={{ objectFit: 'cover' }}
           className="transition-opacity duration-300"
         />
       </div>
-      
       {images.length > 1 && (
         <>
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-black/30 text-white hover:bg-black/50 rounded-full h-8 w-8"
             onClick={prevImage}
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-black/30 text-white hover:bg-black/50 rounded-full h-8 w-8"
             onClick={nextImage}
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
-          
           <div className="absolute bottom-2 left-0 right-0 z-20 flex justify-center gap-1">
             {images.map((_, index) => (
-              <button 
-                key={index} 
+              <button
+                key={index}
                 className={`w-2 h-2 rounded-full ${currentImageIndex === index ? 'bg-white' : 'bg-white/60'}`}
                 onClick={() => setCurrentImageIndex(index)}
               />
@@ -93,10 +89,9 @@ const ImageCarousel = ({ images }: { images: string[] }) => {
   );
 };
 
-// Fetch and parse IPFS data
 const fetchIPFSData = async (uri: string) => {
   if (!uri || !uri.startsWith('ipfs://')) return null;
-  
+
   try {
     const url = uri.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/');
     const response = await axios.get(url);
@@ -108,10 +103,14 @@ const fetchIPFSData = async (uri: string) => {
 };
 
 export default function DonatePage() {
-  const [campaignDetails, setCampaignDetails] = useState<Campaign[]>([])
+  const [campaignDetails, setCampaignDetails] = useState<Campaign[]>([]);
   const [organizations, setOrganizations] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // Fetch all organizations
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
+
   useEffect(() => {
     const fetchOrganizations = async () => {
       try {
@@ -150,7 +149,6 @@ export default function DonatePage() {
         );
 
         const campaignAddresses = await centralContract.getAllCampaigns();
-
         const campaignInterface = new ethers.Interface(charityCampaigns_ABI);
 
         const detailedCampaigns = await Promise.all(
@@ -163,7 +161,6 @@ export default function DonatePage() {
 
             const details = await campaignContract.getCampaignDetails();
 
-            //Mapping ABI
             const campaign: Campaign = {
               address,
               name: details._name,
@@ -173,8 +170,8 @@ export default function DonatePage() {
               totalDonated: ethers.formatEther(details._totalDonated),
               state: Number(details._state),
               charityAddress: details._charityAddress,
-              donors: Math.floor(Math.random() * 100), // Placeholder value
-              daysLeft: Math.floor(Math.random() * 50), // Placeholder value
+              donors: Math.floor(Math.random() * 100),
+              daysLeft: Math.floor(Math.random() * 50),
               images: [],
             };
 
@@ -185,10 +182,7 @@ export default function DonatePage() {
                   campaign.images = imageData.images;
                 }
               } catch (error) {
-                console.error(
-                  `Error fetching images for campaign ${campaign.address}:`,
-                  error
-                );
+                console.error(`Error fetching images for campaign ${campaign.address}:`, error);
               }
             }
 
@@ -196,7 +190,6 @@ export default function DonatePage() {
           })
         );
 
-        // Filter only campaigns where state === 0 (convert BigInt to Number)
         const activeCampaigns = detailedCampaigns.filter(
           (campaign) => campaign.state === 0
         );
@@ -210,26 +203,21 @@ export default function DonatePage() {
     fetchCampaignsDetails();
   }, []);
 
-  // Function to get organization name by wallet address
   const getOrgNameByAddress = (walletAddress: string) => {
-    if (!walletAddress || !organizations.length) return "Unknown Organization"; // Early return if no address or organizations
+    if (!walletAddress || !organizations.length) return "Unknown Organization";
     const org = organizations.find((o) => o?.walletAddress?.toLowerCase() === walletAddress.toLowerCase());
-    return org?.name || walletAddress; // Return name if found, otherwise fallback to address
+    return org?.name || walletAddress;
   };
 
-  const getDisplayUrl = (ipfsUrl: string) => {
-    if (!ipfsUrl) return '/placeholder.svg';
-    return ipfsUrl.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/');
-  };
+  const filteredCampaigns = campaignDetails.filter((campaign) =>
+    campaign.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    campaign.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="flex flex-col min-h-screen">
-      <section
-        className="w-full py-12 md:py-24 lg:py-32 bg-muted/50 relative bg-[url('/donate-banner.png')] bg-cover bg-center"
-      >
-        {/* Overlay for text readability */}
+      <section className="w-full py-12 md:py-24 lg:py-32 bg-muted/50 relative bg-[url('/donate-banner.png')] bg-cover bg-center">
         <div className="absolute inset-0 bg-black/50"></div>
-
         <div className="container px-4 md:px-6 relative z-10">
           <div className="flex flex-col items-center justify-center space-y-4 text-center">
             <div className="space-y-2">
@@ -246,20 +234,27 @@ export default function DonatePage() {
 
       <section className="w-full py-12 md:py-24 lg:py-32">
         <div className="container px-4 md:px-6">
-          <div className="flex flex-col items-start gap-4 md:flex-row md:justify-between">
+          <div className="flex flex-col md:flex-row md:justify-between gap-4 md:items-center">
             <div>
               <h2 className="text-2xl font-bold tracking-tight">Active Campaigns</h2>
               <p className="text-muted-foreground">
                 Support these verified organizations and track your impact through blockchain.
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col md:flex-row items-center gap-2 w-full md:w-auto">
+              <input
+                type="text"
+                placeholder="Search campaigns..."
+                value={searchQuery}
+                onChange={handleSearchChange}
+                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary w-full md:w-64"
+              />
               <Button variant="outline">Filter</Button>
               <Button variant="outline">Sort</Button>
             </div>
           </div>
           <div className="grid gap-6 pt-8 md:grid-cols-2 lg:grid-cols-3">
-            {campaignDetails.map((campaign, index) => (
+            {filteredCampaigns.map((campaign, index) => (
               <Card key={index} className="overflow-hidden">
                 <div className="relative">
                   {campaign.images && campaign.images.length > 0 ? (
