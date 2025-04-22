@@ -522,7 +522,7 @@ export function CampaignPredictionChart({ campaigns, loading = false }: Campaign
   //     </Card>
   //   );
   // }
-  if (loading || isLoading) {
+  if (loading || isLoading && campaigns.length > 0) {
     return (
       <Card className="col-span-3">
         <CardHeader>
