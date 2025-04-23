@@ -16,6 +16,7 @@ import {
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
+import { toast } from "react-toastify";
 
 // Animation variants for fade-in effect
 const fadeIn = {
@@ -84,10 +85,23 @@ export default function KYBForm() {
                 const { match, extractedText } = await ocrRes.json();
 
                 if (match) {
-                    alert("Submission Verified and Approved!");
-                    router.push("/register");
+                    toast.success("✅ Organization Verified and Approved!", {
+                        position: "top-center",
+                        autoClose: 1500,
+                        hideProgressBar: true,
+                        closeOnClick: true,
+                        pauseOnHover: false,
+                        draggable: false,
+                    });
+
+                    setTimeout(() => {
+                        router.push("/register");
+                    }, 2500);
                 } else {
-                    alert("❌ Invalid organization information. Please Try Again.");
+                    toast.error("❌ Invalid organization information. Please Try Again.", {
+                        position: "top-right",
+                        autoClose: 3000,
+                    });
                 }
             } catch (error) {
                 console.error("❌ OCR error:", error);

@@ -69,38 +69,38 @@ const ImageCarousel = ({ images }: { images: string[] }) => {
     <div className="relative w-full h-48 md:h-56 rounded-lg overflow-hidden mb-4">
       <div className="absolute inset-0 bg-gray-900/20 z-10"></div>
       <div className="relative h-full w-full">
-        <Image 
-          src={getDisplayUrl(images[currentImageIndex])} 
-          alt="Campaign image" 
-          fill 
-          style={{ objectFit: 'cover' }} 
+        <Image
+          src={getDisplayUrl(images[currentImageIndex])}
+          alt="Campaign image"
+          fill
+          style={{ objectFit: 'cover' }}
           className="transition-opacity duration-300"
         />
       </div>
-      
+
       {images.length > 1 && (
         <>
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-black/30 text-white hover:bg-black/50 rounded-full h-8 w-8"
             onClick={prevImage}
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-black/30 text-white hover:bg-black/50 rounded-full h-8 w-8"
             onClick={nextImage}
           >
             <ChevronRightIcon className="h-4 w-4" />
           </Button>
-          
+
           <div className="absolute bottom-2 left-0 right-0 z-20 flex justify-center gap-1">
             {images.map((_, index) => (
-              <button 
-                key={index} 
+              <button
+                key={index}
                 className={`w-2 h-2 rounded-full ${currentImageIndex === index ? 'bg-white' : 'bg-white/60'}`}
                 onClick={() => setCurrentImageIndex(index)}
               />
@@ -115,7 +115,7 @@ const ImageCarousel = ({ images }: { images: string[] }) => {
 // Fetch and parse IPFS data
 const fetchIPFSData = async (uri: string) => {
   if (!uri || !uri.startsWith('ipfs://')) return null;
-  
+
   try {
     const url = uri.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/');
     const response = await axios.get(url);
@@ -156,28 +156,28 @@ export default function OrganizationDashboardPage() {
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
-    
+
     const files = Array.from(e.target.files);
     // Check if adding these files would exceed the limit
     if (campaignImages.length + files.length > 5) {
       setCreateCampaignError("Maximum 5 images allowed");
       return;
     }
-    
+
     setCampaignImages(prev => [...prev, ...files]);
-    
+
     const newPreviewUrls = files.map(file => URL.createObjectURL(file));
     setImagePreviewUrls(prev => [...prev, ...newPreviewUrls]);
-    
+
     setCreateCampaignError("");
-    
+
     e.target.value = '';
   };
 
   // Remove an image
   const removeImage = (index: number) => {
     URL.revokeObjectURL(imagePreviewUrls[index]);
-    
+
     // Remove the image and its preview URL
     setCampaignImages(prev => prev.filter((_, i) => i !== index));
     setImagePreviewUrls(prev => prev.filter((_, i) => i !== index));
@@ -251,17 +251,17 @@ export default function OrganizationDashboardPage() {
 
     try {
       let imagesIpfsLink = null;
-      
+
       // Upload images to IPFS if any are provided
       if (campaignImages.length > 0) {
         try {
           const imageUploadPromises = campaignImages.map(uploadToPinata);
           const imageIPFSHashes = await Promise.all(imageUploadPromises);
-          
+
           imagesIpfsLink = await uploadJSONToPinata({
             images: imageIPFSHashes
           });
-          
+
           console.log("Campaign images uploaded to IPFS:", imagesIpfsLink);
         } catch (error) {
           console.error("Error uploading images to IPFS:", error);
@@ -294,11 +294,11 @@ export default function OrganizationDashboardPage() {
       console.log("Transaction sent:", tx);
       const receipt = await tx.wait();
       console.log("Transaction confirmed:", receipt);
-      
+
       // Close dialog and reset form
       setDialogOpen(false);
       resetCampaignForm();
-      
+
       // Refresh campaign data
       if (address && isConnected && orgData) {
         fetchCampaignData(address);
@@ -414,7 +414,7 @@ export default function OrganizationDashboardPage() {
         try {
           const donors = await campaignContract.getAllDonors();
           campaign.donors = donors.length;
-          
+
           campaign.donations = [];
         } catch (error) {
           console.error("Error fetching donors for campaign:", error);
@@ -528,14 +528,14 @@ export default function OrganizationDashboardPage() {
               Enter the details for your new fundraising campaign
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="flex-1 overflow-y-auto px-6 py-4">
             {createCampaignError && (
               <div className="bg-red-950/20 border border-red-800/30 text-red-400 px-4 py-3 mb-6 rounded-md text-sm">
                 {createCampaignError}
               </div>
             )}
-            
+
             <div className="space-y-6">
               <div className="grid gap-2">
                 <Label htmlFor="name" className="text-base">Campaign Name</Label>
@@ -549,7 +549,7 @@ export default function OrganizationDashboardPage() {
                   className="bg-card/50"
                 />
               </div>
-              
+
               <div className="grid gap-2">
                 <Label htmlFor="description" className="text-base">Description</Label>
                 <Textarea
@@ -562,7 +562,7 @@ export default function OrganizationDashboardPage() {
                   disabled={createCampaignLoading}
                 />
               </div>
-              
+
               <div className="grid gap-2">
                 <Label htmlFor="goal" className="text-base">Funding Goal (ETH)</Label>
                 <Input
@@ -659,7 +659,7 @@ export default function OrganizationDashboardPage() {
               </div>
             </div>
           </div>
-          
+
           <DialogFooter className="px-6 py-4 border-t border-border bg-muted/30 sticky bottom-0 z-10">
             <Button
               variant="outline"
@@ -888,7 +888,7 @@ export default function OrganizationDashboardPage() {
                                 </div>
                               )}
                             </div>
-                            
+
                             {/* Content section - takes 60% width on desktop */}
                             <div className="flex-1 p-6 flex flex-col h-full justify-between">
                               <div>
@@ -899,11 +899,11 @@ export default function OrganizationDashboardPage() {
                                     <span>{campaign.daysLeft} days left</span>
                                   </div>
                                 </div>
-                                
+
                                 <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
                                   {campaign.description}
                                 </p>
-                                
+
                                 <div className="mb-4">
                                   <div className="flex justify-between text-sm mb-2">
                                     <span className="font-medium text-foreground">
@@ -914,25 +914,29 @@ export default function OrganizationDashboardPage() {
                                     </span>
                                   </div>
                                   <div className="h-2.5 w-full bg-primary/10 rounded-full overflow-hidden">
-                                    <div 
+                                    <div
                                       className="h-full bg-gradient-to-r from-primary to-primary/80 rounded-full transition-all duration-500"
-                                      style={{ 
+                                      style={{
                                         width: `${Math.min((parseFloat(campaign.raised) / parseFloat(campaign.goal)) * 100, 100)}%`,
                                       }}
                                     />
                                   </div>
                                 </div>
-                                
+
                                 <div className="flex flex-wrap gap-3 mb-4">
                                   <div className="flex items-center bg-primary/10 text-primary rounded-full px-3 py-1.5 text-xs">
                                     <Users className="mr-1.5 h-3.5 w-3.5" />
                                     <span className="font-medium">{campaign.donors} donors</span>
                                   </div>
-                                  
+
                                   <div className="flex items-center text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
                                     Active
                                   </div>
-                                  
+
+                                  <div className="flex items-center text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
+                                    Malaysia
+                                  </div>
+
                                   {/* Conditional milestone summary badge */}
                                   {campaign.milestones && campaign.milestones.length > 0 && (
                                     <div className="flex items-center bg-amber-500/10 text-amber-500 rounded-full px-3 py-1.5 text-xs">
@@ -943,7 +947,7 @@ export default function OrganizationDashboardPage() {
                                   )}
                                 </div>
                               </div>
-                              
+
                               <div className="flex flex-col sm:flex-row gap-3 mt-2">
                                 <Link
                                   href={`/organizations/campaigns/${campaign.id}`}
@@ -965,7 +969,7 @@ export default function OrganizationDashboardPage() {
                               </div>
                             </div>
                           </div>
-                          
+
                           {/* Milestone section - conditionally rendered */}
                           {campaign.milestones && campaign.milestones.length > 0 && (
                             <div>
@@ -979,11 +983,10 @@ export default function OrganizationDashboardPage() {
                                 {campaign.milestones.map((milestone, index) => (
                                   <div
                                     key={index}
-                                    className={`border text-center p-4 rounded-lg ${
-                                      milestone.status === 'completed' 
-                                        ? 'bg-green-950/10 border-green-800/30 text-green-500' 
+                                    className={`border text-center p-4 rounded-lg ${milestone.status === 'completed'
+                                        ? 'bg-green-950/10 border-green-800/30 text-green-500'
                                         : 'bg-red-950/5 border-red-800/20 text-red-400'
-                                    }`}
+                                      }`}
                                   >
                                     <div className="font-medium mb-1">{milestone.title}</div>
                                     <div className="text-sm font-bold mb-2">
@@ -1032,7 +1035,7 @@ export default function OrganizationDashboardPage() {
                                   </div>
                                 )}
                               </div>
-                              
+
                               {/* Content section - takes 60% width on desktop */}
                               <div className="flex-1 p-6 flex flex-col h-full justify-between">
                                 <div>
@@ -1044,11 +1047,11 @@ export default function OrganizationDashboardPage() {
                                       </div>
                                     </div>
                                   </div>
-                                  
+
                                   <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
                                     {campaign.description}
                                   </p>
-                                  
+
                                   <div className="mb-4">
                                     <div className="flex justify-between text-sm mb-2">
                                       <span className="font-medium text-foreground">
@@ -1059,15 +1062,15 @@ export default function OrganizationDashboardPage() {
                                       </span>
                                     </div>
                                     <div className="h-2.5 w-full bg-amber-500/10 rounded-full overflow-hidden">
-                                      <div 
+                                      <div
                                         className="h-full bg-gradient-to-r from-amber-500 to-amber-500/80 rounded-full transition-all duration-500"
-                                        style={{ 
+                                        style={{
                                           width: `${Math.min((parseFloat(campaign.raised) / parseFloat(campaign.goal)) * 100, 100)}%`,
                                         }}
                                       />
                                     </div>
                                   </div>
-                                  
+
                                   <div className="flex flex-wrap gap-3 mb-4">
                                     <div className="flex items-center bg-amber-500/10 text-amber-500 rounded-full px-3 py-1.5 text-xs">
                                       <Users className="mr-1.5 h-3.5 w-3.5" />
@@ -1075,7 +1078,7 @@ export default function OrganizationDashboardPage() {
                                     </div>
                                   </div>
                                 </div>
-                                
+
                                 <div className="flex flex-col sm:flex-row gap-3 mt-2">
                                   <Link
                                     href={`/organizations/campaigns/${campaign.id}`}
@@ -1089,7 +1092,7 @@ export default function OrganizationDashboardPage() {
                                 </div>
                               </div>
                             </div>
-                            
+
                             {/* Milestone section - conditionally rendered */}
                             {campaign.milestones && campaign.milestones.length > 0 && (
                               <div>
@@ -1103,11 +1106,10 @@ export default function OrganizationDashboardPage() {
                                   {campaign.milestones.map((milestone, index) => (
                                     <div
                                       key={index}
-                                      className={`border text-center p-4 rounded-lg ${
-                                        milestone.status === 'completed' 
-                                          ? 'bg-green-950/10 border-green-800/30 text-green-500' 
+                                      className={`border text-center p-4 rounded-lg ${milestone.status === 'completed'
+                                          ? 'bg-green-950/10 border-green-800/30 text-green-500'
                                           : 'bg-red-950/5 border-red-800/20 text-red-400'
-                                      }`}
+                                        }`}
                                     >
                                       <div className="font-medium mb-1">{milestone.title}</div>
                                       <div className="text-sm font-bold mb-2">
@@ -1149,12 +1151,12 @@ export default function OrganizationDashboardPage() {
 
       {/* Add the chatbot at the bottom of the return, outside any section */}
       {!loading && !error && orgData && (
-        <OrgChatbot 
-          orgData={orgData} 
-          campaigns={campaigns} 
-          totalRaised={totalRaised} 
-          totalGoal={totalGoal} 
-          totalDonors={totalDonors} 
+        <OrgChatbot
+          orgData={orgData}
+          campaigns={campaigns}
+          totalRaised={totalRaised}
+          totalGoal={totalGoal}
+          totalDonors={totalDonors}
         />
       )}
     </div>

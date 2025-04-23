@@ -8,6 +8,8 @@ import { ThemeProvider } from '@/components/theme-provider';
 import Web3Provider from '@/components/Web3Provider';
 import ClientLayout from '@/components/ClientLayout';
 import 'primeicons/primeicons.css';
+import { ToastContainer } from "react-toastify";
+import 'react-toastify/dist/ReactToastify.css';
 
 const roboto = Roboto({
   subsets: ['latin'],
@@ -33,6 +35,7 @@ export default function RootLayout({
         <link rel="icon" href="/denate-single-logo.png"></link>
       </head>
       <body className={roboto.className}>
+        <ToastContainer />
         <Web3Provider>
           <ThemeProvider attribute="class" defaultTheme="dark" enableSystem storageKey="denate-theme">
             <ClientLayout>{children}</ClientLayout>
