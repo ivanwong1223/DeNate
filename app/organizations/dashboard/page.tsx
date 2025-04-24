@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import axios from "axios";
 import { CampaignPredictionChart } from "@/components/dashboard/CampaignPredictionChart";
 import OrgChatbot from "@/components/dashboard/OrgChatbot";
+import  {toast} from "react-toastify";
 
 // Campaign interface based on the contract structure
 interface Campaign {
@@ -294,6 +295,14 @@ export default function OrganizationDashboardPage() {
       console.log("Transaction sent:", tx);
       const receipt = await tx.wait();
       console.log("Transaction confirmed:", receipt);
+      toast.success('Campaign created successfully!', {
+        position: 'top-right',
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
 
       // Close dialog and reset form
       setDialogOpen(false);
