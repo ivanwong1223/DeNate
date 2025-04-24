@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -30,14 +30,23 @@ export function MainNav() {
     const { isConnected } = useAccount();
     const [open, setOpen] = React.useState(false);
     const [isScrolling, setIsScrolling] = React.useState(false);
+    const [isInitialLoad, setIsInitialLoad] = useState(true);
     const router = useRouter();
 
-    // Redirect to home when disconnected
     useEffect(() => {
-        if (!isConnected) {
-            router.push("/");
+        if (isInitialLoad) {
+            setIsInitialLoad(false);
+            return;
         }
-    }, [isConnected, router]);
+        
+        const redirectTimer = setTimeout(() => {
+            if (!isConnected) {
+                router.push("/");
+            }
+        }, 1000);
+        
+        return () => clearTimeout(redirectTimer);
+    }, [isConnected, router, isInitialLoad]);
 
     // Toggle the mobile menu
     const handleOpen = () => setOpen((cur) => !cur);
