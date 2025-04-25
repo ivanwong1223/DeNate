@@ -37,6 +37,10 @@ export default function ChatBotToggle() {
         {
             keywords: ["contact", "support", "help", "need help", "message", "inquiry", "ask"],
             response: "You may reach out to us via email: admin@denate.com or drop us a message at our telegram: @denate_admin."
+        },
+        {
+            keywords: ["hi", "hello"],
+            response: "Hi, Welcome to DeNate! How can I assist you today?"
         }
     ];
 
