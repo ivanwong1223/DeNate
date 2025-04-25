@@ -13,7 +13,7 @@ DeNate is a cutting-edge **blockchain-based** platform that revolutionizes **don
 - **Automated Fund Release with Chainlink**: **Chainlink automation** triggers the release of funds once specific campaign milestones are met, ensuring **timely**, - - **secure**, and **trustless** fund distribution.
 - **Honorable NFT Badges for Top Donors**: Top donors from each campaign are rewarded with an **honorary NFT badge**, recognizing their contributions and incentivizing continued support.
 - **AI-Driven Donation Forecasts**: Get smart predictions on when your campaign will hit its goal—helping boost confidence and fine-tune your strategy.
-- **AI-Powered Chatbot**: To assist users on guidance, inquiries, campaign assistance and much more.
+- **AI-Powered Chatbot**: To assist both donors and organisations on guidance, inquiries, campaign assistance and much more.
 
 
 ---
