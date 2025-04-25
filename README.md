@@ -12,6 +12,7 @@ DeNate is a cutting-edge **blockchain-based** platform that revolutionizes **don
 - **Global Donations**: Supporting **cryptocurrency donations** for global access.
 - **Automated Fund Release with Chainlink**: **Chainlink automation** triggers the release of funds once specific campaign milestones are met, ensuring **timely**, - - **secure**, and **trustless** fund distribution.
 - **Honorable NFT Badges for Top Donors**: Top donors from each campaign are rewarded with an **honorary NFT badge**, recognizing their contributions and incentivizing continued support.
+- **AI-Driven Donation Forecasts**: Get smart predictions on when your campaign will hit its goal—helping boost confidence and fine-tune your strategy.
 
 
 ---
@@ -95,8 +96,8 @@ Return to the platform and check out new campaigns, interact with your donor com
 
 ## **🎮 How It Works for Organizations**
 
-### **1️⃣ Create an Account and Get Verified (KYC)**
-Charity organizations can easily sign up on **DeNate**. To ensure legitimacy, each organization must go through a **Know Your Customer (KYC)** verification process. Once verified, your organization will be able to create and manage campaigns on the platform.
+### **1️⃣ Create an Account and Get Verified (KYB)**
+Charity organizations can easily sign up on **DeNate**. To ensure legitimacy, each organization must go through a **Know Your Business (KYB)** verification process. Once verified, your organization will be able to create and manage campaigns on the platform.
 
 ### **2️⃣ Create a Campaign**
 Once verified, organizations can create a new charity campaign. They will set:
@@ -156,6 +157,12 @@ NEXT_PUBLIC_PINATA_API_KEY=""
 NEXT_PUBLIC_PINATA_API_SECRET=""
 MONGODB_URI=""
 NEXT_PUBLIC_SITE_URL=""
+CONTRACT_OWNER_PRIVATE_KEY=""
+YOUVERIFY_API_KEY=""
+OCR_API_KEY=""
+GEMINI_API_KEY=""
+OPENROUTER_API_KEY=""
+OPENAI_API_KEY=""
 ```
 ⚠ **DO NOT expose your `.env.local` file in a public repository**. Add `.env.local` to your `.gitignore` file to prevent accidental leaks.
 
