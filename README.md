@@ -122,6 +122,12 @@ Once a milestone is reached, the **smart contract** will automatically release t
 ### **7️⃣ Ongoing Campaign Management**
 Organizations can continue to manage and update campaigns. You can create new campaigns, update milestones, and interact with the DeNate community. Additionally, you can **deactivate** a campaign at any time, and once deactivated, the **remaining funds will be released immediately** to the charity organization. Your **Donor Dashboard** will show all ongoing campaigns, their statuses, and a list of contributions.
 
+### **8️⃣ AI-Driven Donation Forecasting**
+To assist with campaign planning and decision-making, DeNate provides an **AI-driven donation forecast** chart. This feature uses machine learning algorithms to predict the potential donation growth and estimate when your campaign is likely to reach its funding goal. The chart helps organizations to:
+- **Visualize donation trends** over time.
+- **Predict future donation milestones** based on historical data.
+- **Plan better fundraising strategies** by understanding donation patterns.
+
 ---
 
 ## **🌍 Live Demo**
